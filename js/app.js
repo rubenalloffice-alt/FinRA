@@ -24,6 +24,7 @@
     });
     $('view-title').textContent = TITLES[view];
     if (view === 'settings') loadAbout();
+    if (view === 'entries') Entries.show();
   }
 
   /** Opens the main app and loads what the Add form needs. */
@@ -31,6 +32,12 @@
     showScreen('shell');
     showView('add');
     EntryForm.load();
+  }
+
+  /** Clears everything that was loaded from the server. */
+  function wipeScreens() {
+    EntryForm.clear();
+    Entries.clear();
   }
 
   /** Fills the Settings > Connection text from the server. */
@@ -109,7 +116,7 @@
   async function lockNow() {
     try { await Api.call('logout'); } catch (e) { /* the token is dropped below anyway */ }
     Api.setToken('');
-    EntryForm.clear();
+    wipeScreens();
     showScreen('login');
   }
 
@@ -134,7 +141,7 @@
     $('btn-lock').addEventListener('click', lockNow);
     $('btn-change-url').addEventListener('click', function () {
       Api.clearUrl();
-      EntryForm.clear();
+      wipeScreens();
       showScreen('setup');
     });
     $('btn-showpin').addEventListener('click', function () {
@@ -146,11 +153,12 @@
     document.querySelectorAll('.nav-item').forEach(function (b) {
       b.addEventListener('click', function () { showView(b.dataset.view); });
     });
+    window.addEventListener('goto-view', function (ev) { showView(ev.detail); });
     window.addEventListener('online', updateNetPill);
     window.addEventListener('offline', updateNetPill);
     window.addEventListener('session-expired', function () {
       $('login-msg').textContent = 'Session ended. Please unlock again.';
-      EntryForm.clear();
+      wipeScreens();
       showScreen('login');
     });
     start();

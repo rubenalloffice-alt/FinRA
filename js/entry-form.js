@@ -1,12 +1,11 @@
 /**
- * The Add Entry form: loads the dropdown lists, adapts the fields to the
- * entry type, shows a live BDT preview and saves through the backend.
+ * The Add/Edit Entry form: loads the dropdown lists, adapts the fields to
+ * the entry type, shows a live BDT preview and saves through the backend.
  * The same entryId is reused until a save succeeds, so a retry after a
  * lost connection can never create a duplicate row.
  *
  * The form starts itself: it wires its events when this file loads and
- * loads the lists whenever the main app screen becomes visible, so it
- * does not depend on the order or version of app.js.
+ * loads the lists whenever the main app screen becomes visible.
  */
 const EntryForm = (function () {
 
@@ -16,11 +15,11 @@ const EntryForm = (function () {
 
   let lists = null;       // { categories, institutions, currencies } from the server
   let type = 'Expense';   // currently selected entry type
-  let entryId = '';       // id for the entry being typed
+  let mode = 'add';       // 'add' or 'edit'
+  let entryId = '';       // id for the entry being typed or edited
   let saving = false;     // blocks double taps
   let inited = false;     // init() runs only once
   let loadPromise = null; // shares one in-flight load between callers
-  let toastTimer = null;
 
   /** Makes a new random entry id (letters and digits, 33 chars). */
   function newId() {
@@ -51,18 +50,9 @@ const EntryForm = (function () {
     return Number(s);
   }
 
-  /** Formats a number with 2 decimals and thousand separators. */
-  function money(n) {
-    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
-  }
-
-  /** Shows a short message at the bottom of the screen. */
-  function toast(text) {
-    const el = $('toast');
-    el.textContent = text;
-    el.classList.add('show');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function () { el.classList.remove('show'); }, 3000);
+  /** Asks the app shell to show another tab. */
+  function gotoView(name) {
+    window.dispatchEvent(new CustomEvent('goto-view', { detail: name }));
   }
 
   /** Shows or clears the error text under one field. */
@@ -92,6 +82,18 @@ const EntryForm = (function () {
       opt.textContent = o.label;
       select.appendChild(opt);
     });
+  }
+
+  /** Text of the save button for the current mode. */
+  function saveLabel() {
+    return mode === 'edit' ? 'Update entry' : 'Save entry';
+  }
+
+  /** Updates the title, the save button and the cancel button for the mode. */
+  function applyMode() {
+    $('form-title').textContent = mode === 'edit' ? 'Edit entry' : 'Add entry';
+    $('btn-save').textContent = saveLabel();
+    $('btn-cancel-edit').hidden = mode !== 'edit';
   }
 
   /** Rebuilds category and institution choices for the current type. */
@@ -140,7 +142,7 @@ const EntryForm = (function () {
     const amount = parseNumber($('f-amount').value);
     const rate = parseNumber($('f-rate').value);
     if (code === 'BDT' || !(amount > 0) || !(rate > 0)) { el.hidden = true; return; }
-    el.textContent = '\u2248 \u09F3 ' + money(Math.round(amount * rate * 100) / 100) + ' (BDT)';
+    el.textContent = '\u2248 \u09F3 ' + Ui.money(Math.round(amount * rate * 100) / 100) + ' (BDT)';
     el.hidden = false;
   }
 
@@ -174,6 +176,11 @@ const EntryForm = (function () {
       loadPromise = fetchLists().then(function () { loadPromise = null; });
     }
     return loadPromise;
+  }
+
+  /** Returns the loaded lists (or null). Used by the Entries screen. */
+  function getLists() {
+    return lists;
   }
 
   /** Quick checks so obvious mistakes show up instantly. Returns true when fine. */
@@ -221,16 +228,52 @@ const EntryForm = (function () {
       sent.details.trim() === stored.details;
   }
 
-  /** After a successful save: clear the typed values, keep type/date/currency. */
-  function resetAfterSave() {
+  /** Clears the typed amount and details and returns the currency to BDT. */
+  function resetFields() {
     $('f-amount').value = '';
     $('f-details').value = '';
+    $('f-currency').value = 'BDT';
+    onCurrencyChange();
     entryId = newId();
-    updatePreview();
-    $('f-amount').focus();
   }
 
-  /** Form submit: validate, save, report. */
+  /** Leaves edit mode and returns the form to a clean "add" state. */
+  function leaveEdit() {
+    mode = 'add';
+    resetFields();
+    $('f-category').value = '';
+    $('f-institution').value = '';
+    $('f-date').value = todayLocal();
+    clearErrors();
+    applyMode();
+  }
+
+  /** Fills the form with an existing entry and switches to edit mode. */
+  function startEdit(entry) {
+    if (!lists) return;
+    mode = 'edit';
+    entryId = entry.entryId;
+    setType(entry.type);
+    $('f-date').value = entry.date;
+    $('f-currency').value = entry.currency;
+    onCurrencyChange();
+    $('f-rate').value = entry.currency === 'BDT' ? '' : String(entry.rate);
+    $('f-amount').value = String(entry.amount);
+    if (entry.category) $('f-category').value = entry.category;
+    $('f-institution').value = entry.institution || '';
+    $('f-details').value = entry.details;
+    updatePreview();
+    applyMode();
+    gotoView('add');
+  }
+
+  /** Cancel button in edit mode. */
+  function cancelEdit() {
+    leaveEdit();
+    gotoView('entries');
+  }
+
+  /** Form submit: validate, save (add or update), report. */
   async function onSubmit(ev) {
     ev.preventDefault();
     if (saving) return;
@@ -238,19 +281,31 @@ const EntryForm = (function () {
     if (!validateClient()) return;
 
     const payload = buildPayload();
+    if (payload.currency !== 'BDT' && payload.rate === 1) {
+      if (!window.confirm('The rate for ' + payload.currency + ' is 1. Is that correct?')) return;
+    }
+
     const btn = $('btn-save');
     saving = true;
     btn.disabled = true;
     btn.textContent = 'Saving...';
     try {
+      if (mode === 'edit') {
+        const upd = await Api.call('updateEntry', payload);
+        Ui.toast('Updated \u2713  \u09F3 ' + Ui.money(upd.entry.amountBdt));
+        leaveEdit();
+        gotoView('entries');
+        return;
+      }
       const res = await Api.call('addEntry', payload);
       if (res.duplicate && !sameEntry(payload, res.entry)) {
         $('entry-msg').textContent = 'An earlier try was already saved with different values. Check the Entries tab, then retype.';
         entryId = newId();
         return;
       }
-      toast(res.duplicate ? 'Already saved' : 'Saved \u2713  \u09F3 ' + money(res.entry.amountBdt));
-      resetAfterSave();
+      Ui.toast(res.duplicate ? 'Already saved' : 'Saved \u2713  \u09F3 ' + Ui.money(res.entry.amountBdt));
+      resetFields();
+      $('f-amount').focus();
     } catch (e) {
       const field = e.details && e.details.field;
       if (e.code === 'VALIDATION' && FIELDS.indexOf(field) !== -1) {
@@ -263,16 +318,18 @@ const EntryForm = (function () {
     } finally {
       saving = false;
       btn.disabled = false;
-      btn.textContent = 'Save entry';
+      btn.textContent = saveLabel();
     }
   }
 
   /** Forgets loaded data and typed values (used when locking). */
   function clear() {
     lists = null;
+    mode = 'add';
     $('form-entry').reset();
     $('f-date').value = todayLocal();
     clearErrors();
+    applyMode();
   }
 
   /** Wires the form once; calling it again does nothing. */
@@ -289,6 +346,8 @@ const EntryForm = (function () {
     $('f-amount').addEventListener('input', updatePreview);
     $('f-rate').addEventListener('input', updatePreview);
     $('form-entry').addEventListener('submit', onSubmit);
+    $('btn-cancel-edit').addEventListener('click', cancelEdit);
+    applyMode();
     watchShell();
   }
 
@@ -304,5 +363,5 @@ const EntryForm = (function () {
   // Start right away: this script is loaded at the end of the page.
   init();
 
-  return { init: init, load: load, clear: clear };
+  return { init: init, load: load, clear: clear, getLists: getLists, startEdit: startEdit };
 })();

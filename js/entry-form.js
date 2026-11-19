@@ -3,6 +3,10 @@
  * entry type, shows a live BDT preview and saves through the backend.
  * The same entryId is reused until a save succeeds, so a retry after a
  * lost connection can never create a duplicate row.
+ *
+ * The form starts itself: it wires its events when this file loads and
+ * loads the lists whenever the main app screen becomes visible, so it
+ * does not depend on the order or version of app.js.
  */
 const EntryForm = (function () {
 
@@ -14,6 +18,8 @@ const EntryForm = (function () {
   let type = 'Expense';   // currently selected entry type
   let entryId = '';       // id for the entry being typed
   let saving = false;     // blocks double taps
+  let inited = false;     // init() runs only once
+  let loadPromise = null; // shares one in-flight load between callers
   let toastTimer = null;
 
   /** Makes a new random entry id (letters and digits, 33 chars). */
@@ -114,6 +120,7 @@ const EntryForm = (function () {
 
   /** Shows the rate field for foreign currencies and pre-fills the last rate. */
   function onCurrencyChange() {
+    if (!lists) return;
     const code = $('f-currency').value;
     const foreign = code !== 'BDT';
     $('field-rate').hidden = !foreign;
@@ -148,8 +155,8 @@ const EntryForm = (function () {
     refreshChoices();
   }
 
-  /** Loads the dropdown lists from the server (call after login). */
-  async function load() {
+  /** Fetches the lists and fills the dropdowns. Shows the reason on failure. */
+  async function fetchLists() {
     try {
       lists = await Api.call('getLists');
       refreshCurrencies();
@@ -159,6 +166,14 @@ const EntryForm = (function () {
       lists = null;
       $('entry-msg').textContent = 'Could not load the lists: ' + e.message + ' Tap Save to try again.';
     }
+  }
+
+  /** Loads the dropdown lists; callers at the same moment share one request. */
+  function load() {
+    if (!loadPromise) {
+      loadPromise = fetchLists().then(function () { loadPromise = null; });
+    }
+    return loadPromise;
   }
 
   /** Quick checks so obvious mistakes show up instantly. Returns true when fine. */
@@ -256,11 +271,14 @@ const EntryForm = (function () {
   function clear() {
     lists = null;
     $('form-entry').reset();
+    $('f-date').value = todayLocal();
     clearErrors();
   }
 
-  /** Wires the form once. */
+  /** Wires the form once; calling it again does nothing. */
   function init() {
+    if (inited) return;
+    inited = true;
     entryId = newId();
     $('f-date').value = todayLocal();
     $('f-date').max = todayLocal();
@@ -271,7 +289,20 @@ const EntryForm = (function () {
     $('f-amount').addEventListener('input', updatePreview);
     $('f-rate').addEventListener('input', updatePreview);
     $('form-entry').addEventListener('submit', onSubmit);
+    watchShell();
   }
+
+  /** Loads the lists whenever the main app screen becomes visible. */
+  function watchShell() {
+    const shell = $('shell');
+    new MutationObserver(function () {
+      if (!shell.hidden && !lists) load();
+    }).observe(shell, { attributes: true, attributeFilter: ['hidden'] });
+    if (!shell.hidden && !lists) load();
+  }
+
+  // Start right away: this script is loaded at the end of the page.
+  init();
 
   return { init: init, load: load, clear: clear };
 })();

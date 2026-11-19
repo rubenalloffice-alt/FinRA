@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#0f766e">
+  <title>My Finance</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- First-run screen: the user pastes the server URL once -->
+  <section id="screen-setup" class="screen center" hidden>
+    <div class="card auth-card">
+      <div class="logo">৳</div>
+      <h1>Welcome</h1>
+      <p class="muted">Paste your private server address. It is saved only on this device.</p>
+      <form id="form-setup" autocomplete="off">
+        <label for="input-url">Server URL</label>
+        <input id="input-url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec" required>
+        <p id="setup-msg" class="msg" role="alert"></p>
+        <button class="btn primary" type="submit">Connect</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- PIN screen -->
+  <section id="screen-login" class="screen center" hidden>
+    <div class="card auth-card">
+      <div class="logo">৳</div>
+      <h1>My Finance</h1>
+      <p class="muted">Enter your PIN to unlock.</p>
+      <form id="form-login" autocomplete="off">
+        <label for="input-pin">PIN</label>
+        <div class="pin-row">
+          <input id="input-pin" type="password" autocomplete="current-password" minlength="8" maxlength="64" required>
+          <button type="button" id="btn-showpin" class="btn ghost" aria-label="Show or hide PIN">Show</button>
+        </div>
+        <p id="login-msg" class="msg" role="alert"></p>
+        <button id="btn-login" class="btn primary" type="submit">Unlock</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Main app: one nav that is a bottom bar on phones and a side menu on large screens -->
+  <div id="shell" hidden>
+    <nav class="nav" aria-label="Main">
+      <div class="nav-brand"><span class="logo small">৳</span><span>My Finance</span></div>
+      <button class="nav-item active" data-view="add">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add</span>
+      </button>
+      <button class="nav-item" data-view="entries">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Entries</span>
+      </button>
+      <button class="nav-item" data-view="reports">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg><span>Reports</span>
+      </button>
+      <button class="nav-item" data-view="settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg><span>Settings</span>
+      </button>
+    </nav>
+
+    <main class="content">
+      <header class="topbar">
+        <h2 id="view-title">Add</h2>
+        <span id="net-pill" class="pill ok">Online</span>
+      </header>
+
+      <!-- ADD ENTRY -->
+      <section id="view-add" class="view">
+        <form id="form-entry" class="card" data-type="Expense" novalidate autocomplete="off">
+
+          <div id="seg-type" class="seg" role="group" aria-label="Entry type">
+            <button type="button" class="seg-btn" data-type="Income">Income</button>
+            <button type="button" class="seg-btn active" data-type="Expense">Expense</button>
+            <button type="button" class="seg-btn" data-type="Deposit">Deposit</button>
+            <button type="button" class="seg-btn" data-type="Withdrawal">Withdrawal</button>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label for="f-date">Date</label>
+              <input id="f-date" type="date">
+              <p class="ferr" data-for="date"></p>
+            </div>
+            <div class="field">
+              <label for="f-amount">Amount</label>
+              <input id="f-amount" type="text" inputmode="decimal" placeholder="0.00">
+              <p class="ferr" data-for="amount"></p>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="field">
+              <label for="f-currency">Currency</label>
+              <select id="f-currency"></select>
+              <p class="ferr" data-for="currency"></p>
+            </div>
+            <div class="field" id="field-rate" hidden>
+              <label for="f-rate">Rate to BDT</label>
+              <input id="f-rate" type="text" inputmode="decimal" placeholder="e.g. 120">
+              <p class="ferr" data-for="rate"></p>
+            </div>
+          </div>
+          <p id="bdt-preview" class="preview" hidden></p>
+
+          <div class="field" id="field-category">
+            <label for="f-category">Category</label>
+            <select id="f-category"></select>
+            <p class="ferr" data-for="category"></p>
+          </div>
+
+          <div class="field" id="field-institution">
+            <label for="f-institution" id="lbl-institution">Institution (optional)</label>
+            <select id="f-institution"></select>
+            <p class="ferr" data-for="institution"></p>
+          </div>
+
+          <div class="field">
+            <label for="f-details">Details</label>
+            <textarea id="f-details" rows="4" maxlength="5000" placeholder="Where, why, who... (বাংলায়ও লেখা যাবে)"></textarea>
+            <p class="ferr" data-for="details"></p>
+          </div>
+
+          <p id="entry-msg" class="msg" role="alert"></p>
+          <button id="btn-save" class="btn primary" type="submit">Save entry</button>
+        </form>
+      </section>
+
+      <section id="view-entries" class="view" hidden>
+        <div class="card"><h3>Entries</h3><p class="muted">The entry list comes in a later step.</p></div>
+      </section>
+      <section id="view-reports" class="view" hidden>
+        <div class="card"><h3>Reports</h3><p class="muted">Monthly reports come in a later step.</p></div>
+      </section>
+      <section id="view-settings" class="view" hidden>
+        <div class="card">
+          <h3>Connection</h3>
+          <p class="muted" id="about-text">Checking server...</p>
+          <div class="row">
+            <button id="btn-lock" class="btn primary" type="button">Lock now</button>
+            <button id="btn-change-url" class="btn ghost" type="button">Change server URL</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/entry-form.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

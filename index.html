@@ -67,9 +67,14 @@
         <span id="net-pill" class="pill ok">Online</span>
       </header>
 
-      <!-- ADD ENTRY -->
+      <!-- ADD / EDIT ENTRY -->
       <section id="view-add" class="view">
         <form id="form-entry" class="card" data-type="Expense" novalidate autocomplete="off">
+
+          <div class="form-head">
+            <h3 id="form-title">Add entry</h3>
+            <button id="btn-cancel-edit" class="btn ghost small" type="button" hidden>Cancel edit</button>
+          </div>
 
           <div id="seg-type" class="seg" role="group" aria-label="Entry type">
             <button type="button" class="seg-btn" data-type="Income">Income</button>
@@ -128,12 +133,62 @@
         </form>
       </section>
 
+      <!-- ENTRIES LIST -->
       <section id="view-entries" class="view" hidden>
-        <div class="card"><h3>Entries</h3><p class="muted">The entry list comes in a later step.</p></div>
+        <div class="month-bar">
+          <button id="m-prev" class="btn ghost icon" type="button" aria-label="Previous month">&#8249;</button>
+          <div id="m-label" class="month-label">Month</div>
+          <button id="m-next" class="btn ghost icon" type="button" aria-label="Next month">&#8250;</button>
+        </div>
+
+        <div class="tiles">
+          <div class="tile"><span class="tile-k">Income</span><span id="t-income" class="tile-v ok">-</span></div>
+          <div class="tile"><span class="tile-k">Expense</span><span id="t-expense" class="tile-v bad">-</span></div>
+          <div class="tile"><span class="tile-k">Net saved</span><span id="t-net" class="tile-v">-</span></div>
+        </div>
+        <p class="muted small">Totals cover the whole month. Filters change only the list below.</p>
+
+        <div class="card filters">
+          <div class="grid2">
+            <div class="field">
+              <label for="q-type">Type</label>
+              <select id="q-type">
+                <option value="">All types</option>
+                <option value="Income">Income</option>
+                <option value="Expense">Expense</option>
+                <option value="Deposit">Deposit</option>
+                <option value="Withdrawal">Withdrawal</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="q-search">Search</label>
+              <input id="q-search" type="search" maxlength="100" placeholder="Details, category...">
+            </div>
+          </div>
+          <details class="more">
+            <summary>More filters</summary>
+            <div class="grid2">
+              <div class="field">
+                <label for="q-category">Category</label>
+                <select id="q-category"><option value="">All</option></select>
+              </div>
+              <div class="field">
+                <label for="q-institution">Institution</label>
+                <select id="q-institution"><option value="">All</option></select>
+              </div>
+            </div>
+            <label class="check"><input id="q-deleted" type="checkbox"> Show deleted entries</label>
+          </details>
+        </div>
+
+        <p id="list-info" class="muted small"></p>
+        <div id="entry-list" class="entry-list"></div>
       </section>
+
       <section id="view-reports" class="view" hidden>
         <div class="card"><h3>Reports</h3><p class="muted">Monthly reports come in a later step.</p></div>
       </section>
+
       <section id="view-settings" class="view" hidden>
         <div class="card">
           <h3>Connection</h3>
@@ -147,11 +202,16 @@
     </main>
   </div>
 
-  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite">
+    <span id="toast-text"></span>
+    <button id="toast-action" class="toast-btn" type="button" hidden></button>
+  </div>
 
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/ui.js"></script>
   <script src="js/entry-form.js"></script>
+  <script src="js/entries.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

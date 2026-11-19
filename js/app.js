@@ -26,6 +26,13 @@
     if (view === 'settings') loadAbout();
   }
 
+  /** Opens the main app and loads what the Add form needs. */
+  function enterApp() {
+    showScreen('shell');
+    showView('add');
+    EntryForm.load();
+  }
+
   /** Fills the Settings > Connection text from the server. */
   async function loadAbout() {
     const el = $('about-text');
@@ -83,8 +90,7 @@
       const res = await Api.call('login', { pin: $('input-pin').value }, { noToken: true });
       Api.setToken(res.token);
       $('input-pin').value = '';
-      showScreen('shell');
-      showView('add');
+      enterApp();
     } catch (e) {
       if (e.code === 'BAD_PIN' && e.details.attemptsLeft !== undefined) {
         msg.textContent = 'Wrong PIN. Attempts left: ' + e.details.attemptsLeft;
@@ -103,6 +109,7 @@
   async function lockNow() {
     try { await Api.call('logout'); } catch (e) { /* the token is dropped below anyway */ }
     Api.setToken('');
+    EntryForm.clear();
     showScreen('login');
   }
 
@@ -113,8 +120,7 @@
     if (!Api.getToken()) { showScreen('login'); return; }
     try {
       await Api.call('whoami');
-      showScreen('shell');
-      showView('add');
+      enterApp();
     } catch (e) {
       showScreen('login');
     }
@@ -122,11 +128,13 @@
 
   /** Wires all buttons and events once. */
   function init() {
+    EntryForm.init();
     $('form-setup').addEventListener('submit', onSetupSubmit);
     $('form-login').addEventListener('submit', onLoginSubmit);
     $('btn-lock').addEventListener('click', lockNow);
     $('btn-change-url').addEventListener('click', function () {
       Api.clearUrl();
+      EntryForm.clear();
       showScreen('setup');
     });
     $('btn-showpin').addEventListener('click', function () {
@@ -142,6 +150,7 @@
     window.addEventListener('offline', updateNetPill);
     window.addEventListener('session-expired', function () {
       $('login-msg').textContent = 'Session ended. Please unlock again.';
+      EntryForm.clear();
       showScreen('login');
     });
     start();

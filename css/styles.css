@@ -46,6 +46,8 @@ h2 { font-size: 1.3rem; }
 h3 { font-size: 1.05rem; }
 .muted { color: var(--muted); margin: 0 0 1rem; }
 .small { font-size: .85rem; }
+.pos { color: var(--ok); }
+.neg { color: var(--danger); }
 
 /* ---------- Cards, forms, buttons ---------- */
 .card {
@@ -123,10 +125,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
   .grid2 { grid-template-columns: 1fr; gap: 0; }
 }
 
-/* ---------- Entries view ---------- */
+/* ---------- Month bar and tiles (Entries and Reports) ---------- */
 .month-bar { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; }
 .month-label { font-weight: 700; font-size: 1.15rem; text-align: center; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
+.tiles.four { grid-template-columns: repeat(2, 1fr); margin-bottom: 16px; }
+@media (min-width: 700px) { .tiles.four { grid-template-columns: repeat(4, 1fr); } }
 .tile {
   background: var(--surface); border: 1px solid var(--line); border-radius: 14px;
   padding: 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0;
@@ -137,6 +141,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .tile-v.bad { color: var(--danger); }
 @media (max-width: 380px) { .tile-v { font-size: .92rem; } }
 
+/* ---------- Entries view ---------- */
 .filters { padding: 14px 16px; }
 .more summary { cursor: pointer; font-weight: 600; margin-top: 12px; }
 .check { display: flex; align-items: center; gap: 10px; font-weight: 500; margin-top: 12px; }
@@ -176,6 +181,36 @@ input:focus-visible, select:focus-visible, textarea:focus-visible,
 .amt-sub { color: var(--muted); font-size: .8rem; }
 .entry-actions { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; }
 .empty { text-align: center; color: var(--muted); padding: 28px 10px; }
+
+/* ---------- Reports view ---------- */
+.cols2 { display: grid; gap: 16px; margin-bottom: 16px; }
+.cols2 .card { margin-bottom: 0; }
+@media (min-width: 900px) { .cols2 { grid-template-columns: 1fr 1fr; } }
+
+.cmp-line { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.cmp-line:last-child { border-bottom: 0; }
+.cmp-val { font-weight: 600; text-align: right; }
+
+.bar-row { margin: 12px 0; }
+.bar-top { display: flex; justify-content: space-between; gap: 10px; font-size: .92rem; margin-bottom: 4px; }
+.bar-track { height: 10px; background: var(--bg); border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.bar-fill { height: 100%; border-radius: 999px; background: var(--brand); }
+.bar-fill.exp { background: var(--danger); }
+.bar-fill.inc { background: var(--ok); }
+
+.chart { width: 100%; height: auto; display: block; }
+.chart line { stroke: var(--line); stroke-width: 1; }
+.chart text { fill: var(--muted); font-size: 10px; }
+.chart .bar { fill: var(--danger); opacity: .8; cursor: pointer; }
+.chart .bar:hover, .chart .bar.sel { opacity: 1; }
+
+.list-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.list-row:last-child { border-bottom: 0; }
+.list-main { min-width: 0; }
+.list-title { font-weight: 600; overflow-wrap: anywhere; }
+.list-sub { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+.list-amt { font-weight: 700; white-space: nowrap; }
+.total-line { display: flex; justify-content: space-between; gap: 12px; padding-top: 12px; font-weight: 700; }
 
 /* ---------- Toast ---------- */
 .toast {

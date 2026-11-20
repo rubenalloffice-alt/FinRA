@@ -25,6 +25,7 @@
     $('view-title').textContent = TITLES[view];
     if (view === 'settings') loadAbout();
     if (view === 'entries') Entries.show();
+    if (view === 'reports') ReportsView.show();
   }
 
   /** Opens the main app and loads what the Add form needs. */
@@ -38,6 +39,7 @@
   function wipeScreens() {
     EntryForm.clear();
     Entries.clear();
+    ReportsView.clear();
   }
 
   /** Fills the Settings > Connection text from the server. */

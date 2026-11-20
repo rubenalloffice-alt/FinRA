@@ -185,8 +185,45 @@
         <div id="entry-list" class="entry-list"></div>
       </section>
 
+      <!-- REPORTS -->
       <section id="view-reports" class="view" hidden>
-        <div class="card"><h3>Reports</h3><p class="muted">Monthly reports come in a later step.</p></div>
+        <div class="month-bar">
+          <button id="r-prev" class="btn ghost icon" type="button" aria-label="Previous month">&#8249;</button>
+          <div id="r-label" class="month-label">Month</div>
+          <button id="r-next" class="btn ghost icon" type="button" aria-label="Next month">&#8250;</button>
+        </div>
+        <p id="r-status" class="muted small"></p>
+
+        <div class="tiles four">
+          <div class="tile"><span class="tile-k">Income</span><span id="r-income" class="tile-v ok">-</span></div>
+          <div class="tile"><span class="tile-k">Expense</span><span id="r-expense" class="tile-v bad">-</span></div>
+          <div class="tile"><span class="tile-k">Net saved</span><span id="r-net" class="tile-v">-</span></div>
+          <div class="tile"><span class="tile-k">Entries</span><span id="r-count" class="tile-v">-</span></div>
+        </div>
+
+        <div id="r-compare" class="card"></div>
+
+        <div class="cols2">
+          <div class="card"><h3>Expenses by category</h3><div id="r-exp-cats"></div></div>
+          <div class="card"><h3>Income by category</h3><div id="r-inc-cats"></div></div>
+        </div>
+
+        <div class="card">
+          <h3>Daily expenses</h3>
+          <div id="r-daily"></div>
+          <p id="r-daily-note" class="muted small"></p>
+        </div>
+
+        <div class="cols2">
+          <div class="card"><h3>Biggest expenses</h3><div id="r-top"></div></div>
+          <div class="card"><h3>Savings</h3><div id="r-savings"></div></div>
+        </div>
+
+        <div class="card">
+          <h3>Month snapshot</h3>
+          <p id="r-snap-text" class="muted"></p>
+          <div class="row"><button id="r-snap-btn" class="btn primary" type="button">Save snapshot</button></div>
+        </div>
       </section>
 
       <section id="view-settings" class="view" hidden>
@@ -212,6 +249,7 @@
   <script src="js/ui.js"></script>
   <script src="js/entry-form.js"></script>
   <script src="js/entries.js"></script>
+  <script src="js/reports.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

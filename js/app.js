@@ -23,7 +23,7 @@
       b.classList.toggle('active', b.dataset.view === view);
     });
     $('view-title').textContent = TITLES[view];
-    if (view === 'settings') loadAbout();
+    if (view === 'settings') Settings.show();
     if (view === 'entries') Entries.show();
     if (view === 'reports') ReportsView.show();
   }
@@ -40,18 +40,7 @@
     EntryForm.clear();
     Entries.clear();
     ReportsView.clear();
-  }
-
-  /** Fills the Settings > Connection text from the server. */
-  async function loadAbout() {
-    const el = $('about-text');
-    try {
-      const info = await Api.call('whoami');
-      el.textContent = 'Connected to ' + info.app + ' (' + info.environment +
-        '), base currency ' + info.baseCurrency + '.';
-    } catch (e) {
-      el.textContent = e.message;
-    }
+    Settings.clear();
   }
 
   /** Sets the Online/Offline pill. */

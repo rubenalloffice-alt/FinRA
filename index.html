@@ -7,6 +7,7 @@
   <meta name="theme-color" content="#0f766e">
   <title>My Finance</title>
   <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="css/settings.css">
 </head>
 <body>
 
@@ -226,14 +227,83 @@
         </div>
       </section>
 
+      <!-- SETTINGS -->
       <section id="view-settings" class="view" hidden>
+
         <div class="card">
-          <h3>Connection</h3>
+          <h3>Categories</h3>
+          <p class="muted small">Turning a category off hides it from new entries. Old entries and reports keep it.</p>
+          <div id="set-cat-list"></div>
+          <form id="form-cat" class="inline-form" autocomplete="off">
+            <div class="field">
+              <label for="set-cat-name">New category</label>
+              <input id="set-cat-name" type="text" maxlength="40" placeholder="e.g. Medicine" required>
+            </div>
+            <div class="field">
+              <label for="set-cat-type">Type</label>
+              <select id="set-cat-type">
+                <option value="Expense">Expense</option>
+                <option value="Income">Income</option>
+              </select>
+            </div>
+            <button class="btn primary" type="submit">Add</button>
+          </form>
+          <p id="msg-cat" class="msg" role="alert"></p>
+        </div>
+
+        <div class="card">
+          <h3>Institutions</h3>
+          <p class="muted small">Places where your savings are kept (used by Deposit and Withdrawal).</p>
+          <div id="set-ins-list"></div>
+          <form id="form-ins" class="inline-form" autocomplete="off">
+            <div class="field">
+              <label for="set-ins-name">New institution</label>
+              <input id="set-ins-name" type="text" maxlength="40" placeholder="e.g. City Bank DPS" required>
+            </div>
+            <div class="field">
+              <label for="set-ins-type">Kind</label>
+              <select id="set-ins-type"></select>
+            </div>
+            <button class="btn primary" type="submit">Add</button>
+          </form>
+          <p id="msg-ins" class="msg" role="alert"></p>
+        </div>
+
+        <div class="card">
+          <h3>Currencies</h3>
+          <p class="muted small">The conversion rate is typed on each entry. Currencies cannot be removed.</p>
+          <div id="set-cur-list"></div>
+          <form id="form-cur" class="inline-form" autocomplete="off">
+            <div class="field">
+              <label for="set-cur-code">Code (3 letters)</label>
+              <input id="set-cur-code" type="text" maxlength="3" placeholder="GBP" required>
+            </div>
+            <div class="field">
+              <label for="set-cur-name">Name</label>
+              <input id="set-cur-name" type="text" maxlength="40" placeholder="British Pound" required>
+            </div>
+            <button class="btn primary" type="submit">Add</button>
+          </form>
+          <p id="msg-cur" class="msg" role="alert"></p>
+        </div>
+
+        <div class="card">
+          <h3>Backups</h3>
+          <p class="muted small">A copy of the whole database is made automatically every month. You can also make one now.</p>
+          <div class="row"><button id="btn-backup" class="btn primary" type="button">Back up now</button></div>
+          <p id="msg-backup" class="msg" role="status"></p>
+          <div id="set-backup-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Security and connection</h3>
           <p class="muted" id="about-text">Checking server...</p>
           <div class="row">
             <button id="btn-lock" class="btn primary" type="button">Lock now</button>
+            <button id="btn-signout-all" class="btn ghost" type="button">Sign out everywhere</button>
             <button id="btn-change-url" class="btn ghost" type="button">Change server URL</button>
           </div>
+          <p id="msg-security" class="msg" role="alert"></p>
         </div>
       </section>
     </main>
@@ -250,6 +320,7 @@
   <script src="js/entry-form.js"></script>
   <script src="js/entries.js"></script>
   <script src="js/reports.js"></script>
+  <script src="js/settings.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

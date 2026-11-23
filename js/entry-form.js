@@ -6,12 +6,17 @@
  *
  * The form starts itself: it wires its events when this file loads and
  * loads the lists whenever the main app screen becomes visible.
+ *
+ * Offline: the lists are remembered on the phone (LISTS_KEY). When there is
+ * no internet (or no login), a new entry is saved in the Queue and sent
+ * later by Sync. Editing an existing entry always needs internet.
  */
 const EntryForm = (function () {
 
   const $ = function (id) { return document.getElementById(id); };
   const SAVINGS = ['Deposit', 'Withdrawal'];
   const FIELDS = ['date', 'amount', 'currency', 'rate', 'category', 'institution', 'details'];
+  const LISTS_KEY = 'ft_lists';   // localStorage: last lists from the server (not secret)
 
   let lists = null;       // { categories, institutions, currencies } from the server
   let type = 'Expense';   // currently selected entry type
@@ -157,16 +162,45 @@ const EntryForm = (function () {
     refreshChoices();
   }
 
-  /** Fetches the lists and fills the dropdowns. Shows the reason on failure. */
+  /** Remembers the lists on the phone so they are available offline. */
+  function saveListsCache(value) {
+    try { localStorage.setItem(LISTS_KEY, JSON.stringify(value)); } catch (e) { /* storage blocked */ }
+  }
+
+  /** Reads the remembered lists (or null). */
+  function readListsCache() {
+    try {
+      const v = JSON.parse(localStorage.getItem(LISTS_KEY) || 'null');
+      return v && Array.isArray(v.categories) && Array.isArray(v.institutions) && Array.isArray(v.currencies) ? v : null;
+    } catch (e) { return null; }
+  }
+
+  /** Uses the remembered lists. Returns true when there were some. */
+  function useCachedLists() {
+    const cached = readListsCache();
+    if (!cached) return false;
+    lists = cached;
+    refreshCurrencies();
+    refreshChoices();
+    $('entry-msg').textContent = '';
+    return true;
+  }
+
+  /** Fetches the lists and fills the dropdowns. Falls back to the remembered lists offline. */
   async function fetchLists() {
+    if (!navigator.onLine && useCachedLists()) return;
     try {
       lists = await Api.call('getLists');
+      saveListsCache(lists);
       refreshCurrencies();
       refreshChoices();
       $('entry-msg').textContent = '';
     } catch (e) {
+      if (e.code === 'NETWORK' && useCachedLists()) return;
       lists = null;
-      $('entry-msg').textContent = 'Could not load the lists: ' + e.message + ' Tap Save to try again.';
+      $('entry-msg').textContent = !navigator.onLine
+        ? 'Open the app once with internet to load your categories.'
+        : 'Could not load the lists: ' + e.message + ' Tap Save to try again.';
     }
   }
 
@@ -267,6 +301,47 @@ const EntryForm = (function () {
     gotoView('add');
   }
 
+  /** Puts a not-accepted waiting entry back into the form so it can be corrected. */
+  function loadDraft(p) {
+    if (!lists) return;
+    mode = 'add';
+    entryId = newId();
+    setType(p.type);
+    $('f-date').value = p.date;
+    $('f-currency').value = p.currency;
+    onCurrencyChange();
+    if (p.currency !== 'BDT' && p.rate) $('f-rate').value = String(p.rate);
+    $('f-amount').value = String(p.amount);
+    if (p.category) $('f-category').value = p.category;
+    $('f-institution').value = p.institution || '';
+    $('f-details').value = p.details || '';
+    updatePreview();
+    applyMode();
+    gotoView('add');
+    $('entry-msg').textContent = 'Fix the highlighted problem, then save again.';
+  }
+
+  /**
+   * Saves a new entry on the phone for later sending.
+   * @param {Object} payload addEntry data.
+   * @param {boolean} hold true when added without a PIN login.
+   * @returns {Promise<boolean>} true when it was stored.
+   */
+  async function saveOffline(payload, hold) {
+    try {
+      await Queue.add(payload, { hold: hold });
+    } catch (e) {
+      $('entry-msg').textContent = 'Could not save on this phone: ' + e.message;
+      return false;
+    }
+    Ui.toast(hold
+      ? 'Saved on this phone. Unlock later to review and send it.'
+      : 'Saved on this phone \u2713 It will be sent when the internet returns.');
+    resetFields();
+    $('f-amount').focus();
+    return true;
+  }
+
   /** Cancel button in edit mode. */
   function cancelEdit() {
     leaveEdit();
@@ -291,10 +366,18 @@ const EntryForm = (function () {
     btn.textContent = 'Saving...';
     try {
       if (mode === 'edit') {
+        if (!navigator.onLine) {
+          $('entry-msg').textContent = 'Editing needs internet. Try again when you are online.';
+          return;
+        }
         const upd = await Api.call('updateEntry', payload);
         Ui.toast('Updated \u2713  \u09F3 ' + Ui.money(upd.entry.amountBdt));
         leaveEdit();
         gotoView('entries');
+        return;
+      }
+      if (!navigator.onLine || !Api.getToken()) {
+        await saveOffline(payload, !Api.getToken());
         return;
       }
       const res = await Api.call('addEntry', payload);
@@ -308,6 +391,11 @@ const EntryForm = (function () {
       $('f-amount').focus();
     } catch (e) {
       const field = e.details && e.details.field;
+      if (mode !== 'edit' && (e.code === 'NETWORK' || e.code === 'UNAUTHORIZED')) {
+        // The server could not be reached, or the login ended: keep the entry safe on the phone.
+        await saveOffline(payload, false);
+        return;
+      }
       if (e.code === 'VALIDATION' && FIELDS.indexOf(field) !== -1) {
         setFieldError(field, e.message);
       } else if (e.code === 'NETWORK') {
@@ -363,5 +451,5 @@ const EntryForm = (function () {
   // Start right away: this script is loaded at the end of the page.
   init();
 
-  return { init: init, load: load, clear: clear, getLists: getLists, startEdit: startEdit };
+  return { init: init, load: load, clear: clear, getLists: getLists, startEdit: startEdit, loadDraft: loadDraft };
 })();

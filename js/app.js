@@ -6,6 +6,7 @@
 
   const $ = function (id) { return document.getElementById(id); };
   const TITLES = { add: 'Add', entries: 'Entries', reports: 'Reports', settings: 'Settings' };
+  let guest = false;   // true while the app is open without a PIN login (offline entry only)
 
   /** Shows exactly one of the three top-level screens. */
   function showScreen(name) {
@@ -16,6 +17,10 @@
 
   /** Switches the visible tab in the main app. */
   function showView(view) {
+    if (guest && view !== 'add') {
+      Ui.toast('This needs internet and your PIN.');
+      return;
+    }
     Object.keys(TITLES).forEach(function (v) {
       $('view-' + v).hidden = v !== view;
     });
@@ -33,6 +38,25 @@
     showScreen('shell');
     showView('add');
     EntryForm.load();
+    PendingView.refresh();
+    Sync.run();
+  }
+
+  /** Opens the app without a PIN, only for noting entries while offline. */
+  function enterGuest() {
+    guest = true;
+    showScreen('shell');
+    showView('add');
+    EntryForm.load();
+    PendingView.refresh();
+  }
+
+  /** Leaves guest mode and asks for the PIN. */
+  function leaveGuest(message) {
+    guest = false;
+    wipeScreens();
+    $('login-msg').textContent = message || '';
+    showScreen('login');
   }
 
   /** Clears everything that was loaded from the server. */
@@ -49,6 +73,13 @@
     const online = navigator.onLine;
     pill.textContent = online ? 'Online' : 'Offline';
     pill.className = 'pill ' + (online ? 'ok' : 'off');
+    $('guest-box').hidden = online || !Api.getUrl();
+  }
+
+  /** The internet came back: a guest must unlock so waiting entries can be reviewed and sent. */
+  function onOnline() {
+    updateNetPill();
+    if (guest) leaveGuest('Back online. Unlock to review and send the entries you noted offline.');
   }
 
   /** Setup form: check the URL looks right, ping it, then save it. */
@@ -88,6 +119,7 @@
       const res = await Api.call('login', { pin: $('input-pin').value }, { noToken: true });
       Api.setToken(res.token);
       $('input-pin').value = '';
+      guest = false;
       enterApp();
     } catch (e) {
       if (e.code === 'BAD_PIN' && e.details.attemptsLeft !== undefined) {
@@ -107,6 +139,7 @@
   async function lockNow() {
     try { await Api.call('logout'); } catch (e) { /* the token is dropped below anyway */ }
     Api.setToken('');
+    guest = false;
     wipeScreens();
     showScreen('login');
   }
@@ -116,17 +149,22 @@
     updateNetPill();
     if (!Api.getUrl()) { showScreen('setup'); return; }
     if (!Api.getToken()) { showScreen('login'); return; }
+    if (!navigator.onLine) { enterApp(); return; }   // offline: stay in, entries wait on the phone
     try {
       await Api.call('whoami');
       enterApp();
     } catch (e) {
-      showScreen('login');
+      if (e.code === 'NETWORK') enterApp();           // server not reachable: same as offline
+      else showScreen('login');
     }
   }
 
   /** Wires all buttons and events once. */
   function init() {
     EntryForm.init();
+    PendingView.init();
+    Sync.start();
+    $('btn-guest').addEventListener('click', enterGuest);
     $('form-setup').addEventListener('submit', onSetupSubmit);
     $('form-login').addEventListener('submit', onLoginSubmit);
     $('btn-lock').addEventListener('click', lockNow);
@@ -145,10 +183,11 @@
       b.addEventListener('click', function () { showView(b.dataset.view); });
     });
     window.addEventListener('goto-view', function (ev) { showView(ev.detail); });
-    window.addEventListener('online', updateNetPill);
+    window.addEventListener('online', onOnline);
     window.addEventListener('offline', updateNetPill);
     window.addEventListener('session-expired', function () {
       $('login-msg').textContent = 'Session ended. Please unlock again.';
+      guest = false;
       wipeScreens();
       showScreen('login');
     });

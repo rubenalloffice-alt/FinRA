@@ -8,6 +8,7 @@
   <title>My Finance</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/settings.css">
+  <link rel="stylesheet" href="css/offline.css">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -44,6 +45,10 @@
         <p id="login-msg" class="msg" role="alert"></p>
         <button id="btn-login" class="btn primary" type="submit">Unlock</button>
       </form>
+      <div id="guest-box" class="guest-note" hidden>
+        <p class="muted small">No internet? You can still note down an entry. It waits on this phone and is sent only after you unlock with your PIN and check it.</p>
+        <button id="btn-guest" class="btn ghost" type="button">Add entries without internet</button>
+      </div>
     </div>
   </section>
 
@@ -73,6 +78,14 @@
 
       <!-- ADD / EDIT ENTRY -->
       <section id="view-add" class="view">
+        <div id="pending-box" class="card pending-card" hidden>
+          <div class="pending-head">
+            <h3 id="pending-title">Waiting to be sent</h3>
+            <button id="btn-send-now" class="btn small ghost" type="button" hidden>Send now</button>
+          </div>
+          <div id="pending-list"></div>
+        </div>
+
         <form id="form-entry" class="card" data-type="Expense" novalidate autocomplete="off">
 
           <div class="form-head">
@@ -320,7 +333,10 @@
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/queue.js"></script>
+  <script src="js/sync.js"></script>
   <script src="js/entry-form.js"></script>
+  <script src="js/pending.js"></script>
   <script src="js/entries.js"></script>
   <script src="js/reports.js"></script>
   <script src="js/settings.js"></script>

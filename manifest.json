@@ -1,16 +1,38 @@
 {
-  "name": "My Finance",
-  "short_name": "My Finance",
-  "description": "Personal income, expense and savings tracker.",
-  "start_url": "./",
+  "name": "FinRA - RA Finance",
+  "short_name": "RA Finance",
+  "id": "finra-pwa",
+  "description": "Personal finance, income, expense and savings tracker.",
+  "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#0b1312",
-  "theme_color": "#0f766e",
+  "background_color": "#090e11",
+  "theme_color": "#0d9488",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icons/favicon.png",
+      "sizes": "64x64",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

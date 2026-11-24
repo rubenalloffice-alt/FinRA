@@ -4,13 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#0f766e">
-  <title>My Finance</title>
+  <meta name="theme-color" content="#0d9488">
+  <title>FinRA - RA Finance</title>
+  <script>
+    (function(){
+      try {
+        var t = localStorage.getItem('ft_theme') || 'dark';
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch(e){}
+    })();
+  </script>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="stylesheet" href="css/settings.css">
   <link rel="stylesheet" href="css/offline.css">
   <link rel="stylesheet" href="css/print.css">
   <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="icons/favicon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 </head>
@@ -18,46 +27,81 @@
 
   <!-- First-run screen: the user pastes the server URL once -->
   <section id="screen-setup" class="screen center" hidden>
+    <div class="auth-theme-toggle">
+      <div class="theme-seg" role="group" aria-label="Theme">
+        <button type="button" class="theme-btn" data-theme="system" title="System Theme">🖥️</button>
+        <button type="button" class="theme-btn" data-theme="light" title="Light Theme">☀️</button>
+        <button type="button" class="theme-btn" data-theme="dark" title="Dark Theme">🌙</button>
+      </div>
+    </div>
     <div class="card auth-card">
-      <div class="logo">৳</div>
-      <h1>Welcome</h1>
-      <p class="muted">Paste your private server address. It is saved only on this device.</p>
+      <div class="auth-brand">
+        <img class="auth-logo-img" src="icons/logo.png" alt="FinRA Logo">
+        <h1 class="auth-brand-title">FinRA</h1>
+        <p class="auth-brand-sub">RA Finance</p>
+      </div>
+      <h2>Connect Backend</h2>
+      <p class="muted small">Paste your private Google Apps Script server address. It is saved only on this device.</p>
       <form id="form-setup" autocomplete="off">
         <label for="input-url">Server URL</label>
         <input id="input-url" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/.../exec" required>
         <p id="setup-msg" class="msg" role="alert"></p>
-        <button class="btn primary" type="submit">Connect</button>
+        <button class="btn primary" type="submit">Connect &amp; Continue</button>
       </form>
     </div>
   </section>
 
   <!-- PIN screen -->
   <section id="screen-login" class="screen center" hidden>
+    <div class="auth-theme-toggle">
+      <div class="theme-seg" role="group" aria-label="Theme">
+        <button type="button" class="theme-btn" data-theme="system" title="System Theme">🖥️</button>
+        <button type="button" class="theme-btn" data-theme="light" title="Light Theme">☀️</button>
+        <button type="button" class="theme-btn" data-theme="dark" title="Dark Theme">🌙</button>
+      </div>
+    </div>
     <div class="card auth-card">
-      <div class="logo">৳</div>
-      <h1>My Finance</h1>
-      <p class="muted">Enter your PIN to unlock.</p>
+      <div class="auth-brand">
+        <img class="auth-logo-img" src="icons/logo.png" alt="FinRA Logo">
+        <h1 class="auth-brand-title">FinRA</h1>
+        <p class="auth-brand-sub">RA Finance</p>
+      </div>
+      <h2>Secure Unlock</h2>
+      <p class="muted small">Enter your security PIN to unlock your financial records.</p>
       <form id="form-login" autocomplete="off">
-        <label for="input-pin">PIN</label>
+        <label for="input-pin">Security PIN</label>
         <div class="pin-row">
-          <input id="input-pin" type="password" autocomplete="current-password" minlength="8" maxlength="64" required>
+          <input id="input-pin" type="password" autocomplete="current-password" minlength="8" maxlength="64" placeholder="Enter PIN..." required>
           <button type="button" id="btn-showpin" class="btn ghost" aria-label="Show or hide PIN">Show</button>
         </div>
         <p id="login-msg" class="msg" role="alert"></p>
-        <button id="btn-login" class="btn primary" type="submit">Unlock</button>
+        <button id="btn-login" class="btn primary" type="submit">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle;margin-right:6px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          <span>Log In</span>
+        </button>
       </form>
       <div id="guest-box" class="guest-note" hidden>
-        <p class="muted small">No internet? You can still note down an entry. It waits on this phone and is sent only after you unlock with your PIN and check it.</p>
-        <button id="btn-guest" class="btn ghost" type="button">Add entries without internet</button>
+        <p class="muted small">No internet? You can still note down an entry. It waits on this device and is sent only after you unlock with your PIN.</p>
+        <button id="btn-guest" class="btn ghost small" type="button">Add entries offline</button>
       </div>
     </div>
   </section>
 
-  <!-- Main app: one nav that is a bottom bar on phones and a side menu on large screens -->
+  <!-- Main app shell -->
   <div id="shell" hidden>
     <nav class="nav" aria-label="Main">
-      <div class="nav-brand"><span class="logo small">৳</span><span>My Finance</span></div>
-      <button class="nav-item active" data-view="add">
+      <div class="nav-brand">
+        <img class="nav-brand-logo" src="icons/logo.png" alt="FinRA">
+        <div class="nav-brand-text">
+          <span class="nav-brand-title">FinRA</span>
+          <span class="nav-brand-sub">RA Finance</span>
+        </div>
+      </div>
+
+      <button class="nav-item active" data-view="dashboard">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/></svg><span>Dashboard</span>
+      </button>
+      <button class="nav-item" data-view="add">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Add</span>
       </button>
       <button class="nav-item" data-view="entries">
@@ -69,16 +113,151 @@
       <button class="nav-item" data-view="settings">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3 1a7 7 0 0 0-2-1.2L14.3 3h-4l-.3 2.7a7 7 0 0 0-2 1.2l-2.3-1-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .4 0 .8.1 1.2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 2 1.2l.3 2.7h4l.3-2.7a7 7 0 0 0 2-1.2l2.3 1 2-3.4-2-1.5c.1-.4.1-.8.1-1.2z"/></svg><span>Settings</span>
       </button>
+
+      <div class="nav-footer">
+        <div class="theme-seg" role="group" aria-label="Theme">
+          <button type="button" class="theme-btn" data-theme="system" title="System Theme">🖥️ Auto</button>
+          <button type="button" class="theme-btn" data-theme="light" title="Light Theme">☀️ Light</button>
+          <button type="button" class="theme-btn" data-theme="dark" title="Dark Theme">🌙 Dark</button>
+        </div>
+        <button id="btn-sidebar-lock" class="btn small ghost" type="button" style="width:100%; justify-content:center; gap:8px;" title="Log Out" aria-label="Log Out">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span>Log Out</span>
+        </button>
+      </div>
     </nav>
 
     <main class="content">
       <header class="topbar">
-        <h2 id="view-title">Add</h2>
-        <span id="net-pill" class="pill ok">Online</span>
+        <div class="topbar-left">
+          <img class="topbar-logo" src="icons/logo.png" alt="FinRA">
+          <h2 id="view-title">Dashboard</h2>
+        </div>
+
+        <div class="topbar-actions">
+          <div class="theme-seg" role="group" aria-label="Theme">
+            <button type="button" class="theme-btn" data-theme="system" title="System Theme">🖥️</button>
+            <button type="button" class="theme-btn" data-theme="light" title="Light Theme">☀️</button>
+            <button type="button" class="theme-btn" data-theme="dark" title="Dark Theme">🌙</button>
+          </div>
+          <button class="topbar-btn install-btn btn-pwa-install" type="button" title="Install FinRA App" hidden>
+            <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            <span>Install</span>
+          </button>
+          <button id="btn-top-lock" class="topbar-btn" type="button" title="Log Out" aria-label="Log Out">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            <span>Log Out</span>
+          </button>
+          <span id="net-pill" class="pill ok">Online</span>
+        </div>
       </header>
 
+      <!-- DASHBOARD (OVERVIEW) -->
+      <section id="view-dashboard" class="view">
+        <!-- Dashboard Top Greeting & Month Navigator -->
+        <div class="dash-header">
+          <div class="dash-greeting-wrap">
+            <h3 id="dash-greeting" class="dash-greeting">Welcome to RA Finance</h3>
+            <p class="dash-subtitle muted small">Here is your financial health &amp; activity overview.</p>
+          </div>
+          <div class="month-bar dash-month-bar">
+            <button id="dash-prev" class="btn ghost icon" type="button" aria-label="Previous month">&#8249;</button>
+            <div id="dash-month-label" class="month-label">Month</div>
+            <button id="dash-next" class="btn ghost icon" type="button" aria-label="Next month">&#8250;</button>
+          </div>
+        </div>
+
+        <!-- FinTrack Hero Gradient Balance Card -->
+        <div class="dash-hero-card">
+          <div class="dash-hero-top">
+            <div>
+              <span class="dash-hero-k">Net Saved this Month</span>
+              <div id="dash-hero-balance" class="dash-hero-v">৳ 0.00</div>
+            </div>
+            <span id="dash-hero-badge" class="dash-hero-badge">0% Saved</span>
+          </div>
+          
+          <div class="dash-hero-quick-actions">
+            <button class="btn dash-action-btn primary-action" type="button" data-goto="add">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+              <span>+ Add Entry</span>
+            </button>
+            <button class="btn dash-action-btn" type="button" data-goto="entries">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>
+              <span>Ledger</span>
+            </button>
+            <button class="btn dash-action-btn" type="button" data-goto="reports">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>
+              <span>Reports</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 FinTrack Metric Cards Grid -->
+        <div class="dash-metrics-grid">
+          <div class="card dash-metric-card">
+            <span class="dash-metric-k">Monthly Income</span>
+            <div id="dash-income" class="dash-metric-v pos">৳ 0.00</div>
+            <span class="dash-metric-sub">Earned this month</span>
+          </div>
+          <div class="card dash-metric-card">
+            <span class="dash-metric-k">Monthly Expenses</span>
+            <div id="dash-expense" class="dash-metric-v neg">৳ 0.00</div>
+            <span class="dash-metric-sub">Spent this month</span>
+          </div>
+          <div class="card dash-metric-card">
+            <span class="dash-metric-k">Savings Rate</span>
+            <div id="dash-savings-rate" class="dash-metric-v">0%</div>
+            <span class="dash-metric-sub">Of income saved</span>
+          </div>
+          <div class="card dash-metric-card">
+            <span class="dash-metric-k">Total Entries</span>
+            <div id="dash-entries-count" class="dash-metric-v">0</div>
+            <span class="dash-metric-sub">Recorded entries</span>
+          </div>
+        </div>
+
+        <!-- Mid 2-Column Section (Cashflow Chart + Spending by Category) -->
+        <div class="dash-grid-2">
+          <div class="card dash-chart-card">
+            <div class="dash-card-head">
+              <h3>Cash Flow Activity</h3>
+              <span id="dash-chart-note" class="muted small">Daily expense breakdown</span>
+            </div>
+            <div id="dash-daily-chart" class="dash-chart-wrap"></div>
+          </div>
+
+          <div class="card dash-cats-card">
+            <div class="dash-card-head">
+              <h3>Spending by Category</h3>
+              <button class="btn ghost small" type="button" data-goto="reports">Full report &rarr;</button>
+            </div>
+            <div id="dash-category-list" class="dash-category-list"></div>
+          </div>
+        </div>
+
+        <!-- Bottom 2-Column Section (Recent Transactions + Institutions Balances) -->
+        <div class="dash-grid-2">
+          <div class="card dash-recent-card">
+            <div class="dash-card-head">
+              <h3>Recent Transactions</h3>
+              <button class="btn ghost small" type="button" data-goto="entries">View all &rarr;</button>
+            </div>
+            <div id="dash-recent-list" class="dash-recent-list"></div>
+          </div>
+
+          <div class="card dash-savings-card">
+            <div class="dash-card-head">
+              <h3>Savings &amp; Institutions</h3>
+              <span class="muted small">Current balances</span>
+            </div>
+            <div id="dash-savings-list" class="dash-savings-list"></div>
+          </div>
+        </div>
+      </section>
+
       <!-- ADD / EDIT ENTRY -->
-      <section id="view-add" class="view">
+      <section id="view-add" class="view" hidden>
         <div id="pending-box" class="card pending-card" hidden>
           <div class="pending-head">
             <h3 id="pending-title">Waiting to be sent</h3>
@@ -180,7 +359,7 @@
             </div>
             <div class="field">
               <label for="q-search">Search</label>
-              <input id="q-search" type="search" maxlength="100" placeholder="Details, category...">
+              <input id="q-search" type="search" maxlength="100" placeholder="Details, category, institution...">
             </div>
           </div>
           <details class="more">
@@ -205,7 +384,13 @@
 
       <!-- REPORTS -->
       <section id="view-reports" class="view" hidden>
-        <div id="r-print-head" class="print-head"><h1>My Finance</h1><p id="r-print-sub"></p></div>
+        <div id="r-print-head" class="print-head">
+          <img class="print-logo" src="icons/logo.png" alt="FinRA">
+          <div class="print-head-text">
+            <h1>FinRA - RA Finance</h1>
+            <p id="r-print-sub"></p>
+          </div>
+        </div>
         <div class="month-bar">
           <button id="r-prev" class="btn ghost icon" type="button" aria-label="Previous month">&#8249;</button>
           <div id="r-label" class="month-label">Month</div>
@@ -252,6 +437,19 @@
       <section id="view-settings" class="view" hidden>
 
         <div class="card">
+          <h3>Appearance &amp; Theme</h3>
+          <p class="muted small">Choose how FinRA looks on your device.</p>
+          <div class="row" style="align-items: center;">
+            <div class="theme-seg" role="group" aria-label="Theme">
+              <button type="button" class="theme-btn" data-theme="system" title="System Theme">🖥️ System Default</button>
+              <button type="button" class="theme-btn" data-theme="light" title="Light Theme">☀️ Light Mode</button>
+              <button type="button" class="theme-btn" data-theme="dark" title="Dark Theme">🌙 Dark Mode</button>
+            </div>
+            <button class="btn ghost small btn-pwa-install" type="button" hidden>📲 Install App to Home Screen</button>
+          </div>
+        </div>
+
+        <div class="card">
           <h3>Categories</h3>
           <p class="muted small">Turning a category off hides it from new entries. Old entries and reports keep it.</p>
           <div id="set-cat-list"></div>
@@ -267,7 +465,7 @@
                 <option value="Income">Income</option>
               </select>
             </div>
-            <button class="btn primary" type="submit">Add</button>
+            <button class="btn primary" type="submit">Add Category</button>
           </form>
           <p id="msg-cat" class="msg" role="alert"></p>
         </div>
@@ -285,7 +483,7 @@
               <label for="set-ins-type">Kind</label>
               <select id="set-ins-type"></select>
             </div>
-            <button class="btn primary" type="submit">Add</button>
+            <button class="btn primary" type="submit">Add Institution</button>
           </form>
           <p id="msg-ins" class="msg" role="alert"></p>
         </div>
@@ -303,13 +501,13 @@
               <label for="set-cur-name">Name</label>
               <input id="set-cur-name" type="text" maxlength="40" placeholder="British Pound" required>
             </div>
-            <button class="btn primary" type="submit">Add</button>
+            <button class="btn primary" type="submit">Add Currency</button>
           </form>
           <p id="msg-cur" class="msg" role="alert"></p>
         </div>
 
         <div class="card">
-          <h3>Excel</h3>
+          <h3>Excel Data Management</h3>
           <p class="muted small">Export all your entries to an Excel file, or download an empty template for importing many entries at once. Needs internet.</p>
           <div class="row">
             <button id="btn-export" class="btn primary" type="button">Export all entries</button>
@@ -320,7 +518,7 @@
 
         <div class="card">
           <h3>Import from Excel</h3>
-          <p class="muted small">Fill the template, then choose the file. You see a check first and nothing is saved until you press Import. If any row has a problem, nothing is imported: fix the file and choose it again. Choosing the same file twice never makes duplicates.</p>
+          <p class="muted small">Fill the template, then choose the file. You see a preview check first and nothing is saved until you press Import. If any row has a problem, nothing is imported: fix the file and choose it again. Choosing the same file twice never makes duplicates.</p>
           <div class="row">
             <button id="btn-import-pick" class="btn primary" type="button">Choose Excel file</button>
             <input id="imp-file" type="file" accept=".xlsx,.csv" hidden>
@@ -331,18 +529,18 @@
         </div>
 
         <div class="card">
-          <h3>Backups</h3>
-          <p class="muted small">A copy of the whole database is made automatically every month. You can also make one now.</p>
+          <h3>Automated Backups</h3>
+          <p class="muted small">A copy of the whole database is made automatically every month. You can also make an instant backup now.</p>
           <div class="row"><button id="btn-backup" class="btn primary" type="button">Back up now</button></div>
           <p id="msg-backup" class="msg" role="status"></p>
           <div id="set-backup-list"></div>
         </div>
 
         <div class="card">
-          <h3>Security and connection</h3>
+          <h3>Security &amp; Connection</h3>
           <p class="muted" id="about-text">Checking server...</p>
           <div class="row">
-            <button id="btn-lock" class="btn primary" type="button">Lock now</button>
+            <button id="btn-lock" class="btn primary" type="button">Log Out</button>
             <button id="btn-signout-all" class="btn ghost" type="button">Sign out everywhere</button>
             <button id="btn-change-url" class="btn ghost" type="button">Change server URL</button>
           </div>
@@ -366,9 +564,11 @@
   <script src="js/pending.js"></script>
   <script src="js/entries.js"></script>
   <script src="js/reports.js"></script>
+  <script src="js/dashboard.js"></script>
   <script src="js/settings.js"></script>
   <script src="js/excel.js"></script>
   <script src="js/print.js"></script>
+  <script src="js/theme.js"></script>
   <script src="js/app.js"></script>
   <script src="js/pwa.js"></script>
 </body>

@@ -314,6 +314,18 @@
         </div>
 
         <div class="card">
+          <h3>Import from Excel</h3>
+          <p class="muted small">Fill the template, then choose the file. You see a check first and nothing is saved until you press Import. If any row has a problem, nothing is imported: fix the file and choose it again. Choosing the same file twice never makes duplicates.</p>
+          <div class="row">
+            <button id="btn-import-pick" class="btn primary" type="button">Choose Excel file</button>
+            <input id="imp-file" type="file" accept=".xlsx,.csv" hidden>
+            <button id="btn-import-go" class="btn primary" type="button" hidden>Import</button>
+          </div>
+          <p id="msg-import" class="msg" role="status"></p>
+          <div id="imp-errors"></div>
+        </div>
+
+        <div class="card">
           <h3>Backups</h3>
           <p class="muted small">A copy of the whole database is made automatically every month. You can also make one now.</p>
           <div class="row"><button id="btn-backup" class="btn primary" type="button">Back up now</button></div>

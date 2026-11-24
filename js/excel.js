@@ -1,6 +1,7 @@
 /**
- * Excel tools (Settings tab): export all entries to .xlsx and download
- * an empty import template. The SheetJS library (js/vendor, version 0.18.5)
+ * Excel tools (Settings tab): export all entries to .xlsx, download an empty
+ * import template, and import entries from a filled file (preview first, then
+ * send in chunks of 100 rows to the importEntries action). The SheetJS library (js/vendor, version 0.18.5)
  * is loaded only when a button is first used, so the app opens fast.
  * The Excel column order is the same for export, template and import:
  * Date, Type, Category, Institution, Amount, Currency, Rate, Details.
@@ -134,14 +135,238 @@ const ExcelTools = (function () {
     }
   }
 
+
+  // ---------- Import ----------
+
+  const CHUNK = 100;            // rows per server call (server limit)
+  const MAX_IMPORT_ROWS = 2000; // safety limit per file
+  const MAX_SHOWN_ERRORS = 30;
+  const TYPES = ['Income', 'Expense', 'Deposit', 'Withdrawal'];
+  let ready = null;             // { batchId, rows } waiting for the Import button
+  let busy = false;
+
+  /** Shows a short note in the import card. ok=true makes it green. */
+  function impNote(text, ok) {
+    const p = $('msg-import');
+    p.textContent = text || '';
+    p.className = 'msg' + (ok ? ' ok' : '');
+  }
+
+  /** Text of a cell ('' when empty). */
+  function cellText(cell) {
+    return cell && cell.v !== undefined && cell.v !== null ? String(cell.v).trim() : '';
+  }
+
+  /** Date cell -> yyyy-mm-dd. Excel date serials are formatted without any time zone shift. */
+  function cellDate(XLSX, cell) {
+    if (!cell || cell.v === undefined || cell.v === null) return '';
+    if (cell.t === 'n') return XLSX.SSF.format('yyyy-mm-dd', cell.v);
+    return String(cell.v).trim();
+  }
+
+  /** Number cell -> number, or text with thousands commas removed ('' when empty). */
+  function cellNumber(cell) {
+    if (!cell || cell.v === undefined || cell.v === null) return '';
+    if (cell.t === 'n') return cell.v;
+    return String(cell.v).replace(/[,\s]/g, '');
+  }
+
+  /**
+   * Turns a workbook file into import rows. Pure function (no screen access).
+   * Looks for a sheet named Entries (else the first sheet) and checks the header.
+   * Category, institution, type and currency are matched ignoring upper/lower case.
+   * @param {Object} XLSX The SheetJS library.
+   * @param {ArrayBuffer} buf File bytes.
+   * @param {{categories: Object[], institutions: Object[]}} lists From getLists.
+   * @returns {{rows?: Object[], error?: string}} Rows carry n = the Excel row number.
+   */
+  function parseWorkbook(XLSX, buf, lists) {
+    let wb;
+    try {
+      wb = XLSX.read(buf, { type: 'array' });
+    } catch (e) {
+      return { error: 'This file could not be read. Use the template (.xlsx).' };
+    }
+    const name = wb.SheetNames.indexOf('Entries') !== -1 ? 'Entries' : wb.SheetNames[0];
+    const ws = name ? wb.Sheets[name] : null;
+    if (!ws || !ws['!ref']) return { error: 'The sheet is empty.' };
+    const range = XLSX.utils.decode_range(ws['!ref']);
+
+    for (let c = 0; c < COLUMNS.length; c++) {
+      const head = cellText(ws[XLSX.utils.encode_cell({ r: range.s.r, c: range.s.c + c })]);
+      if (head.toLowerCase() !== COLUMNS[c].toLowerCase()) {
+        return { error: 'Column ' + (c + 1) + ' of the first row must be "' + COLUMNS[c] + '". Please use the template.' };
+      }
+    }
+
+    const byLower = function (items) {
+      const m = {};
+      items.forEach(function (i) { m[i.name.toLowerCase()] = i.name; });
+      return m;
+    };
+    const cats = byLower(lists.categories), inst = byLower(lists.institutions);
+    const rows = [];
+    for (let r = range.s.r + 1; r <= range.e.r; r++) {
+      const cell = function (c) { return ws[XLSX.utils.encode_cell({ r: r, c: range.s.c + c })]; };
+      const blank = COLUMNS.every(function (_, c) { return cellText(cell(c)) === ''; });
+      if (blank) continue;
+      const type = cellText(cell(1));
+      const category = cellText(cell(2)), institution = cellText(cell(3));
+      const currency = cellText(cell(5)).toUpperCase();
+      const row = {
+        n: r + 1,
+        date: cellDate(XLSX, cell(0)),
+        type: TYPES.filter(function (t) { return t.toLowerCase() === type.toLowerCase(); })[0] || type,
+        category: cats[category.toLowerCase()] || category,
+        institution: inst[institution.toLowerCase()] || institution,
+        amount: cellNumber(cell(4)),
+        currency: currency,
+        details: cellText(cell(7))
+      };
+      const rate = cellNumber(cell(6));
+      if (rate !== '') row.rate = rate;
+      rows.push(row);
+      if (rows.length > MAX_IMPORT_ROWS) return { error: 'Too many rows. Import at most ' + MAX_IMPORT_ROWS + ' rows per file.' };
+    }
+    if (!rows.length) return { error: 'No entries found below the header row.' };
+    return { rows: rows };
+  }
+
+  /** SHA-256 of the file as hex (first 32 characters): the same file always gives the same batch id. */
+  async function fileBatchId(buf) {
+    const digest = await crypto.subtle.digest('SHA-256', buf);
+    return Array.from(new Uint8Array(digest)).map(function (b) { return b.toString(16).padStart(2, '0'); }).join('').slice(0, 32);
+  }
+
+  /** Splits a list into pieces of at most `size`. */
+  function chunks(list, size) {
+    const out = [];
+    for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size));
+    return out;
+  }
+
+  /** Shows the first errors as small rows under the import card. */
+  function showErrors(errors) {
+    const box = $('imp-errors');
+    box.textContent = '';
+    errors.slice(0, MAX_SHOWN_ERRORS).forEach(function (e) {
+      const row = document.createElement('div');
+      row.className = 'list-row';
+      const main = document.createElement('div');
+      main.className = 'list-main';
+      const t = document.createElement('div');
+      t.className = 'list-title';
+      t.textContent = (e.n ? 'Row ' + e.n : 'File') + (e.field ? ' - ' + e.field : '');
+      const s = document.createElement('div');
+      s.className = 'list-sub';
+      s.textContent = e.message;
+      main.appendChild(t);
+      main.appendChild(s);
+      row.appendChild(main);
+      box.appendChild(row);
+    });
+    if (errors.length > MAX_SHOWN_ERRORS) {
+      const more = document.createElement('p');
+      more.className = 'muted small';
+      more.textContent = '...and ' + (errors.length - MAX_SHOWN_ERRORS) + ' more problems.';
+      box.appendChild(more);
+    }
+  }
+
+  /** Clears the preview and hides the Import button. */
+  function resetImport() {
+    ready = null;
+    $('imp-errors').textContent = '';
+    $('btn-import-go').hidden = true;
+  }
+
+  /** Reads the chosen file, checks it with the server (dry run) and shows the preview. */
+  async function onFileChosen(file) {
+    resetImport();
+    if (!file) return;
+    if (!navigator.onLine) { impNote('Import needs internet. Try again when you are online.', false); return; }
+    busy = true;
+    $('btn-import-pick').disabled = true;
+    try {
+      impNote('Reading the file...', true);
+      const results = await Promise.all([file.arrayBuffer(), loadLib(), Api.call('getLists')]);
+      const buf = results[0], XLSX = results[1], lists = results[2];
+      const parsed = parseWorkbook(XLSX, buf, lists);
+      if (parsed.error) { impNote(parsed.error, false); return; }
+
+      const batchId = await fileBatchId(buf);
+      const parts = chunks(parsed.rows, CHUNK);
+      let errors = [], wouldImport = 0, duplicates = 0;
+      for (let i = 0; i < parts.length; i++) {
+        impNote('Checking rows... ' + Math.min((i + 1) * CHUNK, parsed.rows.length) + ' of ' + parsed.rows.length, true);
+        const r = await Api.call('importEntries', { batchId: batchId, rows: parts[i], dryRun: true });
+        errors = errors.concat(r.errors);
+        wouldImport += r.wouldImport;
+        duplicates += r.duplicates;
+      }
+      if (errors.length) {
+        showErrors(errors);
+        impNote(errors.length + ' problem' + (errors.length === 1 ? '' : 's') + ' found. Nothing was imported. Fix the file and choose it again.', false);
+        return;
+      }
+      if (!wouldImport) {
+        impNote('Nothing new: all ' + duplicates + ' rows of this file were already imported.', true);
+        return;
+      }
+      ready = { batchId: batchId, rows: parsed.rows };
+      impNote('Ready: ' + wouldImport + ' new entries' + (duplicates ? ' (' + duplicates + ' already imported will be skipped)' : '') + '. Press Import to save them.', true);
+      $('btn-import-go').textContent = 'Import ' + wouldImport + ' entries';
+      $('btn-import-go').hidden = false;
+    } catch (e) {
+      impNote(e.message || 'Could not check the file.', false);
+    } finally {
+      busy = false;
+      $('btn-import-pick').disabled = false;
+      $('imp-file').value = '';
+    }
+  }
+
+  /** Sends the checked rows to the server in chunks. Safe to repeat: known rows are skipped. */
+  async function runImport() {
+    if (!ready || busy) return;
+    if (!navigator.onLine) { impNote('Import needs internet. Try again when you are online.', false); return; }
+    busy = true;
+    const job = ready;
+    $('btn-import-go').disabled = true;
+    $('btn-import-pick').disabled = true;
+    let imported = 0, duplicates = 0;
+    try {
+      const parts = chunks(job.rows, CHUNK);
+      for (let i = 0; i < parts.length; i++) {
+        impNote('Importing... ' + Math.min((i + 1) * CHUNK, job.rows.length) + ' of ' + job.rows.length, true);
+        const r = await Api.call('importEntries', { batchId: job.batchId, rows: parts[i] });
+        if (r.errors.length) { showErrors(r.errors); throw new Error('A row was rejected. Choose the same file again to continue.'); }
+        imported += r.imported;
+        duplicates += r.duplicates;
+      }
+      resetImport();
+      impNote('Imported ' + imported + ' entries' + (duplicates ? ' (' + duplicates + ' skipped, already there)' : '') + '.', true);
+      try { await EntryForm.load(); } catch (e) { /* the Add form shows its own error */ }
+    } catch (e) {
+      impNote((e.message || 'Import stopped.') + (imported ? ' ' + imported + ' entries were saved before it stopped. Choose the same file again to finish; saved rows are skipped.' : ''), false);
+    } finally {
+      busy = false;
+      $('btn-import-go').disabled = false;
+      $('btn-import-pick').disabled = false;
+    }
+  }
+
   /** Connects the buttons. */
   function init() {
     const be = $('btn-export'), bt = $('btn-template');
     if (!be || !bt) return;
     be.addEventListener('click', function () { exportAll(be); });
     bt.addEventListener('click', function () { downloadTemplate(bt); });
+    $('btn-import-pick').addEventListener('click', function () { if (!busy) $('imp-file').click(); });
+    $('imp-file').addEventListener('change', function (ev) { onFileChosen(ev.target.files[0]); });
+    $('btn-import-go').addEventListener('click', runImport);
   }
 
   init();
-  return { COLUMNS: COLUMNS, loadLib: loadLib, note: note };
+  return { COLUMNS: COLUMNS, loadLib: loadLib, note: note, parseWorkbook: parseWorkbook };
 })();

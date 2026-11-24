@@ -1,0 +1,21 @@
+/* ---------- Print / Save as PDF (used for the monthly report) ---------- */
+.print-head { display: none; }
+
+@media print {
+  :root {
+    --bg: #ffffff; --surface: #ffffff; --text: #111111; --muted: #555555; --line: #cccccc;
+    --brand: #0f766e; --brand-ink: #ffffff; --danger: #b42318; --ok: #15803d; --warn: #b45309; --shadow: none;
+  }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  html, body { background: #ffffff !important; color: #111111; }
+
+  .nav, .topbar, .toast, .btn, #r-prev, #r-next { display: none !important; }
+  #shell { padding-left: 0 !important; }
+  .content { max-width: none; padding: 0; }
+  .card, .tile { box-shadow: none; break-inside: avoid; }
+
+  .print-head { display: block; margin: 0 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--brand); }
+  .print-head h1 { margin: 0; font-size: 1.4rem; }
+  .print-head p { margin: 4px 0 0; color: var(--muted); font-size: .9rem; }
+  .month-bar { justify-content: center; }
+}

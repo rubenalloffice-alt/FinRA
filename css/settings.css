@@ -1,17 +1,77 @@
-/* ---------- Settings view ---------- */
-.group-title { margin: 18px 0 4px; font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-.group-title:first-child { margin-top: 4px; }
-.list-row { align-items: center; }
-.list-row.is-off .list-title { color: var(--muted); }
+/* ==========================================================================
+   FinRA - Settings & Management Modern Styling
+   ========================================================================== */
+
+.group-title {
+  margin: 22px 0 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.group-title:first-child {
+  margin-top: 4px;
+}
+
+.list-row {
+  align-items: center;
+  transition: background-color 0.15s ease;
+  padding: 12px 6px;
+  border-radius: var(--radius-sm);
+}
+
+.list-row:hover {
+  background: var(--bg);
+}
+
+.list-row.is-off .list-title {
+  color: var(--muted);
+}
+
 .chip-off {
-  margin-left: 8px; font-size: .72rem; font-weight: 700; color: var(--muted);
-  border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; vertical-align: middle;
+  margin-left: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-full);
+  padding: 2px 8px;
+  vertical-align: middle;
 }
-.inline-form { display: grid; grid-template-columns: 1fr; gap: 0 12px; margin-top: 14px; padding-top: 6px; border-top: 1px solid var(--line); }
-.inline-form .btn.primary { width: auto; margin-top: 12px; }
+
+.inline-form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--line);
+}
+
+.inline-form .btn.primary {
+  width: auto;
+  margin-top: 6px;
+}
+
 @media (min-width: 700px) {
-  .inline-form { grid-template-columns: 2fr 1fr auto; align-items: end; }
-  .inline-form .btn.primary { margin-top: 0; }
+  .inline-form {
+    grid-template-columns: 2fr 1fr auto;
+    align-items: end;
+  }
+  .inline-form .btn.primary {
+    margin-top: 0;
+  }
 }
-a.btn { display: inline-flex; align-items: center; text-decoration: none; }
-.card .row + .msg { margin-top: 10px; }
+
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.card .row + .msg {
+  margin-top: 12px;
+}

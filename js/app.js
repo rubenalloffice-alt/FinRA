@@ -5,7 +5,7 @@
 (function () {
 
   const $ = function (id) { return document.getElementById(id); };
-  const TITLES = { add: 'Add', entries: 'Entries', reports: 'Reports', settings: 'Settings' };
+  const TITLES = { dashboard: 'Dashboard', add: 'Add', entries: 'Entries', reports: 'Reports', settings: 'Settings' };
   let guest = false;   // true while the app is open without a PIN login (offline entry only)
 
   /** Shows exactly one of the three top-level screens. */
@@ -28,6 +28,7 @@
       b.classList.toggle('active', b.dataset.view === view);
     });
     $('view-title').textContent = TITLES[view];
+    if (view === 'dashboard') DashboardView.show();
     if (view === 'settings') Settings.show();
     if (view === 'entries') Entries.show();
     if (view === 'reports') ReportsView.show();
@@ -36,7 +37,8 @@
   /** Opens the main app and loads what the Add form needs. */
   function enterApp() {
     showScreen('shell');
-    showView('add');
+    showView('dashboard');
+    DashboardView.load();
     EntryForm.load();
     PendingView.refresh();
     Sync.run();
@@ -61,6 +63,7 @@
 
   /** Clears everything that was loaded from the server. */
   function wipeScreens() {
+    DashboardView.clear();
     EntryForm.clear();
     Entries.clear();
     ReportsView.clear();
@@ -161,6 +164,7 @@
 
   /** Wires all buttons and events once. */
   function init() {
+    DashboardView.init();
     EntryForm.init();
     PendingView.init();
     Sync.start();
@@ -168,6 +172,10 @@
     $('form-setup').addEventListener('submit', onSetupSubmit);
     $('form-login').addEventListener('submit', onLoginSubmit);
     $('btn-lock').addEventListener('click', lockNow);
+    const topLock = $('btn-top-lock');
+    if (topLock) topLock.addEventListener('click', lockNow);
+    const sideLock = $('btn-sidebar-lock');
+    if (sideLock) sideLock.addEventListener('click', lockNow);
     $('btn-change-url').addEventListener('click', function () {
       Api.clearUrl();
       wipeScreens();

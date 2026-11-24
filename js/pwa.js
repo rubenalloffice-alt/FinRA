@@ -1,13 +1,65 @@
 /**
- * Registers the service worker so the app can open offline and be
- * installed to the home screen. Silent when the browser does not
- * support it (the app works the same, just online only).
+ * PWA Service Worker Registration & One-Click Install Prompt Controller
  */
-(function () {
-  if (!('serviceWorker' in navigator)) return;
-  const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
-  if (!secure) return;
-  window.addEventListener('load', function () {
-    navigator.serviceWorker.register('sw.js').catch(function () { /* the app still works online */ });
-  });
+const PwaManager = (function () {
+  let deferredPrompt = null;
+
+  function updateInstallButtons() {
+    const btns = document.querySelectorAll('.btn-pwa-install');
+    btns.forEach(function (btn) {
+      btn.hidden = !deferredPrompt;
+    });
+  }
+
+  async function triggerInstall() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const choice = await deferredPrompt.userChoice;
+    if (choice && choice.outcome === 'accepted') {
+      if (window.Ui && Ui.toast) Ui.toast('Installing FinRA...');
+    }
+    deferredPrompt = null;
+    updateInstallButtons();
+  }
+
+  function init() {
+    // Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      const secure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (secure) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('sw.js').catch(function () { /* safe fallback */ });
+        });
+      }
+    }
+
+    // Capture Install Prompt
+    window.addEventListener('beforeinstallprompt', function (e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      updateInstallButtons();
+    });
+
+    window.addEventListener('appinstalled', function () {
+      deferredPrompt = null;
+      updateInstallButtons();
+      if (window.Ui && Ui.toast) Ui.toast('FinRA is installed! 🎉');
+    });
+
+    // Wire any element with .btn-pwa-install
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.btn-pwa-install');
+      if (btn) {
+        e.preventDefault();
+        triggerInstall();
+      }
+    });
+  }
+
+  init();
+
+  return {
+    triggerInstall: triggerInstall,
+    isInstallable: function () { return !!deferredPrompt; }
+  };
 })();

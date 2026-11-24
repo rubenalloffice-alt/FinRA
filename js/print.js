@@ -15,7 +15,7 @@
     const oldTitle = document.title;
     const printed = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     $('r-print-sub').textContent = 'Monthly report: ' + label + '  |  Printed ' + printed;
-    document.title = 'My Finance - Report ' + label;
+    document.title = 'FinRA - Report ' + label;
 
     /** Puts the page title back once printing is over. */
     function restore() {

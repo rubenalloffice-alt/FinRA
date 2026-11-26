@@ -43,7 +43,10 @@ const Entries = (function () {
 
   /** Updates the month label and the enabled state of the arrows. */
   function updateMonthBar() {
-    $('m-label').textContent = monthLabel(month);
+    const label = $('m-label');
+    if (label) {
+      label.innerHTML = monthLabel(month) + ' <span class="ml-chevron">▾</span>';
+    }
     $('m-prev').disabled = month <= '2000-01';
     $('m-next').disabled = month >= currentMonth();
   }
@@ -178,7 +181,7 @@ const Entries = (function () {
     if (label) {
       label.innerHTML = loading
         ? '<span class="spinner-sm"></span> ' + monthLabel(month)
-        : monthLabel(month);
+        : monthLabel(month) + ' <span class="ml-chevron">▾</span>';
     }
 
     const prev = $('m-prev');
@@ -288,6 +291,20 @@ const Entries = (function () {
     wired = true;
     $('m-prev').addEventListener('click', function () { month = shiftMonth(month, -1); updateMonthBar(); load(); });
     $('m-next').addEventListener('click', function () { month = shiftMonth(month, 1); updateMonthBar(); load(); });
+    const label = $('m-label');
+    if (label) {
+      label.addEventListener('click', function () {
+        if (window.MonthPicker) {
+          MonthPicker.open(month, function (selectedMonth) {
+            if (selectedMonth && selectedMonth !== month) {
+              month = selectedMonth;
+              updateMonthBar();
+              load();
+            }
+          });
+        }
+      });
+    }
     ['q-type', 'q-category', 'q-institution', 'q-deleted'].forEach(function (id) {
       $(id).addEventListener('change', load);
     });

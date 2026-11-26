@@ -49,7 +49,10 @@ const DashboardView = (function () {
   }
 
   function updateMonthBar() {
-    $('dash-month-label').textContent = monthLabel(month);
+    const label = $('dash-month-label');
+    if (label) {
+      label.innerHTML = monthLabel(month) + ' <span class="ml-chevron">▾</span>';
+    }
     $('dash-prev').disabled = month <= '2000-01';
     $('dash-next').disabled = month >= currentMonth();
   }
@@ -271,7 +274,7 @@ const DashboardView = (function () {
     if (label) {
       label.innerHTML = loading
         ? '<span class="spinner-sm"></span> ' + monthLabel(month)
-        : monthLabel(month);
+        : monthLabel(month) + ' <span class="ml-chevron">▾</span>';
     }
 
     const prev = $('dash-prev');
@@ -383,8 +386,22 @@ const DashboardView = (function () {
 
     const prev = $('dash-prev');
     const next = $('dash-next');
+    const label = $('dash-month-label');
     if (prev) prev.addEventListener('click', function () { month = shiftMonth(month, -1); load(); });
     if (next) next.addEventListener('click', function () { month = shiftMonth(month, 1); load(); });
+    if (label) {
+      label.addEventListener('click', function () {
+        if (window.MonthPicker) {
+          MonthPicker.open(month, function (selectedMonth) {
+            if (selectedMonth && selectedMonth !== month) {
+              month = selectedMonth;
+              updateMonthBar();
+              load();
+            }
+          });
+        }
+      });
+    }
 
     // Handle data-goto quick buttons
     document.addEventListener('click', function (e) {

@@ -649,9 +649,28 @@
     <button id="toast-action" class="toast-btn" type="button" hidden></button>
   </div>
 
+  <!-- Dynamic Month & Year Grid Picker Popover -->
+  <div id="month-picker-overlay" class="month-picker-overlay" hidden>
+    <div id="month-picker-card" class="month-picker-card" role="dialog" aria-modal="true" aria-label="Select month and year">
+      <div class="mp-header">
+        <button type="button" id="mp-prev-year" class="btn ghost icon" aria-label="Previous year">&#8249;</button>
+        <span id="mp-year-label" class="mp-year-title">2026</span>
+        <button type="button" id="mp-next-year" class="btn ghost icon" aria-label="Next year">&#8250;</button>
+      </div>
+      <div id="mp-grid" class="mp-grid">
+        <!-- 12 months generated dynamically -->
+      </div>
+      <div class="mp-footer">
+        <button type="button" id="mp-btn-this-month" class="btn ghost small">Current Month</button>
+        <button type="button" id="mp-btn-close" class="btn ghost small">Close</button>
+      </div>
+    </div>
+  </div>
+
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
+  <script src="js/month-picker.js"></script>
   <script src="js/queue.js"></script>
   <script src="js/sync.js"></script>
   <script src="js/entry-form.js"></script>

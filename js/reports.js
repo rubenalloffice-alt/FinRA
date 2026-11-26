@@ -70,7 +70,10 @@ const ReportsView = (function () {
 
   /** Updates the month label and the enabled state of the arrows. */
   function updateMonthBar() {
-    $('r-label').textContent = monthLabel(month);
+    const label = $('r-label');
+    if (label) {
+      label.innerHTML = monthLabel(month) + ' <span class="ml-chevron">▾</span>';
+    }
     $('r-prev').disabled = month <= '2000-01';
     $('r-next').disabled = month >= currentMonth();
   }
@@ -305,7 +308,7 @@ const ReportsView = (function () {
     if (label) {
       label.innerHTML = loading
         ? '<span class="spinner-sm"></span> ' + monthLabel(month)
-        : monthLabel(month);
+        : monthLabel(month) + ' <span class="ml-chevron">▾</span>';
     }
 
     const prev = $('r-prev');
@@ -392,6 +395,20 @@ const ReportsView = (function () {
     wired = true;
     $('r-prev').addEventListener('click', function () { month = shiftMonth(month, -1); updateMonthBar(); load(); });
     $('r-next').addEventListener('click', function () { month = shiftMonth(month, 1); updateMonthBar(); load(); });
+    const label = $('r-label');
+    if (label) {
+      label.addEventListener('click', function () {
+        if (window.MonthPicker) {
+          MonthPicker.open(month, function (selectedMonth) {
+            if (selectedMonth && selectedMonth !== month) {
+              month = selectedMonth;
+              updateMonthBar();
+              load();
+            }
+          });
+        }
+      });
+    }
     $('r-snap-btn').addEventListener('click', saveSnapshot);
   }
 

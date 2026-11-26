@@ -6,7 +6,7 @@
  * It NEVER touches the server API (a different site, and POST).
  * Bump CACHE_NAME when the file list changes.
  */
-const CACHE_NAME = 'my-finance-v14';
+const CACHE_NAME = 'my-finance-v17';
 const NETWORK_TIMEOUT_MS = 4000;
 
 const SHELL = [
@@ -20,6 +20,7 @@ const SHELL = [
   'js/config.js',
   'js/api.js',
   'js/ui.js',
+  'js/month-picker.js',
   'js/queue.js',
   'js/sync.js',
   'js/entry-form.js',

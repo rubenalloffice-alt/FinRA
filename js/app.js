@@ -380,6 +380,8 @@
     $('btn-lock').addEventListener('click', lockNow);
     const sideLock = $('btn-sidebar-lock');
     if (sideLock) sideLock.addEventListener('click', lockNow);
+    const mobileLock = $('btn-mobile-lock');
+    if (mobileLock) mobileLock.addEventListener('click', lockNow);
 
     // Desktop Collapsible Sidebar Toggle (persisted)
     const SIDEBAR_KEY = 'ft_sidebar_collapsed';

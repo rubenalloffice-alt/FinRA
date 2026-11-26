@@ -946,6 +946,7 @@ textarea {
   font-size: 0.92rem;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   line-height: 1.45;
@@ -953,6 +954,8 @@ textarea {
 
 .entry.open .entry-details {
   display: block;
+  -webkit-line-clamp: unset;
+  line-clamp: none;
   overflow: visible;
 }
 
@@ -1625,15 +1628,25 @@ textarea {
 /* ---------- 15. Desktop Sidebar Navigation (Velmo Inspired + Collapsible Rail) ---------- */
 @media (min-width: 900px) {
   #shell {
-    padding-left: var(--nav-w);
-    transition: padding-left 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    display: grid;
+    grid-template-columns: var(--nav-w) minmax(0, 1fr);
+    align-items: start;
+    padding-left: 0;
+    transition: grid-template-columns 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .topbar-btn.mobile-lock-btn {
+    display: none;
   }
 
   .nav {
+    position: sticky;
     top: 0;
+    left: auto;
     right: auto;
-    bottom: 0;
-    width: var(--nav-w);
+    bottom: auto;
+    height: 100dvh;
+    width: 100%;
     flex-direction: column;
     justify-content: flex-start;
     gap: 8px;
@@ -1642,7 +1655,8 @@ textarea {
     padding: 24px 16px 20px;
     background: var(--surface);
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
-    transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    overflow-y: auto;
+    transition: padding 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .nav-brand {
@@ -1776,11 +1790,12 @@ textarea {
 
   /* Collapsed Sidebar Mini-Rail State */
   #shell.sidebar-collapsed {
-    padding-left: 74px;
+    grid-template-columns: 74px minmax(0, 1fr);
+    padding-left: 0;
   }
 
   #shell.sidebar-collapsed .nav {
-    width: 74px;
+    width: 100%;
     padding: 20px 10px;
     align-items: center;
   }
@@ -2250,10 +2265,25 @@ textarea {
 /* Topbar Notification Button & Badge */
 .topbar-btn.notif-btn {
   position: relative;
-  padding: 6px 10px;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.topbar-btn.mobile-lock-btn {
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  padding: 0;
+  justify-content: center;
+  border-radius: var(--radius-full);
 }
 
 .topbar-btn.notif-btn svg,
+.topbar-btn.mobile-lock-btn svg,
 .net-status-btn svg {
   pointer-events: none;
 }
@@ -2663,14 +2693,31 @@ textarea {
   margin-bottom: 14px;
 }
 
-@media (max-width: 520px) {
-  .notif-card {
-    max-width: 100%;
-    border-radius: 20px 20px 0 0;
-    margin-top: auto;
-  }
+@media (max-width: 767px) {
   .notif-overlay {
     padding: 0;
-    align-items: flex-end;
+    justify-content: flex-end;
+    align-items: stretch;
+  }
+  .notif-card {
+    width: 86vw;
+    max-width: 360px;
+    height: 100dvh;
+    max-height: 100dvh;
+    border-radius: 20px 0 0 20px;
+    border-right: 0;
+    border-top: 0;
+    border-bottom: 0;
+    animation: notifDrawerSlideRight 0.26s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .notif-header {
+    padding-top: calc(16px + env(safe-area-inset-top));
+  }
+  .notif-body {
+    padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  @keyframes notifDrawerSlideRight {
+    from { transform: translateX(100%); }
+    to { transform: translateX(0); }
   }
 }

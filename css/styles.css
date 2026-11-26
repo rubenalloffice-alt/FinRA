@@ -6,6 +6,7 @@
 
 /* ---------- 1. Design Tokens: Base (Default / Light) ---------- */
 :root {
+  color-scheme: light;
   --brand: #0d9488;
   --brand-hover: #0f766e;
   --brand-light: #ccfbf1;
@@ -60,6 +61,7 @@
 /* ---------- 2. Dark Theme Tokens (System auto or explicit data-theme="dark") ---------- */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --brand: #14b8a6;
     --brand-hover: #2dd4bf;
     --brand-light: rgba(20, 184, 166, 0.15);
@@ -102,6 +104,7 @@
 
 /* Explicit forced Dark Mode */
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --brand: #14b8a6;
   --brand-hover: #2dd4bf;
   --brand-light: rgba(20, 184, 166, 0.15);
@@ -143,6 +146,7 @@
 
 /* Explicit forced Light Mode */
 :root[data-theme="light"] {
+  color-scheme: light;
   --brand: #0d9488;
   --brand-hover: #0f766e;
   --brand-light: #ccfbf1;
@@ -276,6 +280,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   border-color: var(--brand);
   background: var(--surface);
   box-shadow: 0 0 0 3px var(--brand-glow);
+}
+
+select {
+  color-scheme: inherit;
+  cursor: pointer;
+}
+
+select option {
+  background-color: var(--surface);
+  color: var(--text);
+  padding: 8px 12px;
 }
 
 input[type="checkbox"] {
@@ -900,33 +915,62 @@ textarea {
   border-top: 1px solid var(--line);
 }
 
-/* ---------- 10. Toast System ---------- */
+/* ---------- 10. Top-Floating Pill Toast System (Global UX Standard) ---------- */
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(92px + env(safe-area-inset-bottom));
-  transform: translate(-50%, 20px) scale(0.96);
+  top: calc(20px + env(safe-area-inset-top));
+  transform: translate(-50%, -28px) scale(0.92);
   opacity: 0;
   pointer-events: none;
-  z-index: 100;
-  display: flex;
+  z-index: 1000;
+  display: inline-flex;
   align-items: center;
-  gap: 12px;
-  background: var(--text);
-  color: var(--bg);
-  padding: 13px 22px;
+  gap: 10px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--line-strong);
+  padding: 10px 20px;
   border-radius: var(--radius-full);
   font-weight: 600;
-  font-size: 0.94rem;
-  max-width: 92vw;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 0.92rem;
+  max-width: 90vw;
+  white-space: nowrap;
+  box-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.2), 0 4px 12px rgba(0, 0, 0, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 0.25s ease;
 }
 
 .toast.show {
   opacity: 1;
   transform: translate(-50%, 0) scale(1);
   pointer-events: auto;
+}
+
+.toast-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ok-bg);
+  color: var(--ok);
+  font-size: 0.82rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.toast-error .toast-icon {
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.toast-warn .toast-icon {
+  background: var(--warn-bg);
+  color: var(--warn);
 }
 
 .toast-btn {
@@ -942,7 +986,21 @@ textarea {
 }
 
 @media (min-width: 900px) {
-  .toast { bottom: 32px; }
+  .toast {
+    top: 28px;
+    padding: 11px 24px;
+    font-size: 0.95rem;
+  }
+}
+
+/* Save Button Micro-Interaction Flash State */
+.btn-success-flash {
+  background: var(--ok) !important;
+  border-color: var(--ok) !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 0 4px var(--ok-glow), 0 6px 18px rgba(16, 185, 129, 0.35) !important;
+  transform: scale(1.02);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 /* ---------- 11. Auth Screens (Setup & Login) ---------- */

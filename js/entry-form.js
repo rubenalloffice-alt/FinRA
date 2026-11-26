@@ -262,12 +262,15 @@ const EntryForm = (function () {
       sent.details.trim() === stored.details;
   }
 
-  /** Clears the typed amount and details and returns the currency to BDT. */
+  /** Clears the typed amount, details, category, institution, and returns the currency to BDT. */
   function resetFields() {
     $('f-amount').value = '';
     $('f-details').value = '';
+    $('f-category').value = '';
+    $('f-institution').value = '';
     $('f-currency').value = 'BDT';
     onCurrencyChange();
+    clearErrors();
     entryId = newId();
   }
 
@@ -321,6 +324,18 @@ const EntryForm = (function () {
     $('entry-msg').textContent = 'Fix the highlighted problem, then save again.';
   }
 
+  /** Briefly flashes the save button green with a tactile success confirmation. */
+  function flashSaveSuccess(msg) {
+    const btn = $('btn-save');
+    if (!btn) return;
+    btn.classList.add('btn-success-flash');
+    btn.textContent = msg || '✓ Saved!';
+    setTimeout(function () {
+      btn.classList.remove('btn-success-flash');
+      btn.textContent = saveLabel();
+    }, 1500);
+  }
+
   /**
    * Saves a new entry on the phone for later sending.
    * @param {Object} payload addEntry data.
@@ -334,9 +349,10 @@ const EntryForm = (function () {
       $('entry-msg').textContent = 'Could not save on this phone: ' + e.message;
       return false;
     }
+    flashSaveSuccess('✓ Saved!');
     Ui.toast(hold
-      ? 'Saved on this phone. Unlock later to review and send it.'
-      : 'Saved on this phone \u2713 It will be sent when the internet returns.');
+      ? 'Saved on this phone (Pending unlock)'
+      : 'Saved on phone: queued for sync');
     resetFields();
     $('f-amount').focus();
     return true;
@@ -371,7 +387,8 @@ const EntryForm = (function () {
           return;
         }
         const upd = await Api.call('updateEntry', payload);
-        Ui.toast('Updated \u2713  \u09F3 ' + Ui.money(upd.entry.amountBdt));
+        flashSaveSuccess('✓ Updated!');
+        Ui.toast('Updated: \u09F3 ' + Ui.money(upd.entry.amountBdt));
         leaveEdit();
         gotoView('entries');
         return;
@@ -386,7 +403,8 @@ const EntryForm = (function () {
         entryId = newId();
         return;
       }
-      Ui.toast(res.duplicate ? 'Already saved' : 'Saved \u2713  \u09F3 ' + Ui.money(res.entry.amountBdt));
+      flashSaveSuccess('✓ Saved!');
+      Ui.toast(res.duplicate ? 'Already saved' : 'Saved: \u09F3 ' + Ui.money(res.entry.amountBdt));
       resetFields();
       $('f-amount').focus();
     } catch (e) {

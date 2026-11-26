@@ -18,13 +18,38 @@ const Ui = (function () {
   }
 
   /**
-   * Shows a short message at the bottom of the screen.
+   * Shows a sleek top-floating message.
    * @param {string} text Message.
    * @param {{label: string, run: Function}=} action Optional button (for example Undo).
+   * @param {'success'|'error'|'warn'|'info'=} type Toast variant.
    */
-  function toast(text, action) {
+  function toast(text, action, type) {
+    const toastEl = $('toast');
+    const iconEl = $('toast-icon');
     const btn = $('toast-action');
-    $('toast-text').textContent = text;
+    
+    // Remove existing variant classes
+    toastEl.classList.remove('toast-error', 'toast-warn');
+    
+    const isError = type === 'error' || /failed|error|wrong|mistake/i.test(text);
+    const isWarn = type === 'warn' || /warning|lock|offline/i.test(text);
+    
+    if (iconEl) {
+      if (isError) {
+        toastEl.classList.add('toast-error');
+        iconEl.textContent = '✕';
+      } else if (isWarn) {
+        toastEl.classList.add('toast-warn');
+        iconEl.textContent = '!';
+      } else {
+        iconEl.textContent = '✓';
+      }
+    }
+
+    // Clean up duplicate checkmark character if passed in text
+    const cleanText = text.replace(/[\u2713\u2714]\s*/g, '').trim();
+    $('toast-text').textContent = cleanText;
+
     if (action && action.label && typeof action.run === 'function') {
       btn.textContent = action.label;
       btn.hidden = false;
@@ -33,9 +58,10 @@ const Ui = (function () {
       btn.hidden = true;
       btn.onclick = null;
     }
-    $('toast').classList.add('show');
+
+    toastEl.classList.add('show');
     clearTimeout(timer);
-    timer = setTimeout(hide, action ? 7000 : 3000);
+    timer = setTimeout(hide, action ? 7000 : 3200);
   }
 
   return { money: money, toast: toast, hide: hide };

@@ -338,5 +338,7 @@ const Entries = (function () {
     renderTiles(null);
   }
 
-  return { show: show, clear: clear, refresh: load, invalidateCache: invalidateCache };
+  const api = { show: show, clear: clear, refresh: load, invalidateCache: invalidateCache };
+  if (typeof window !== 'undefined') window.Entries = api;
+  return api;
 })();

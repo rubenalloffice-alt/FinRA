@@ -1,14 +1,14 @@
 /**
  * FinRA Notification Center & Smart Task Manager
  * Manages the topbar Bell notification drawer, unread badge counter,
- * offline outbox 1-click sync, and end-of-month snapshot to-do reminders.
+ * offline outbox 1-click sync & preview, and month-end snapshot to-do reminders.
  */
 const NotificationsManager = (function () {
   const $ = function (id) { return document.getElementById(id); };
 
   let wired = false;
   let offlineItems = [];
-  let snapshotTask = null; // { month, label, status: 'pending'|'out-of-sync' }
+  let snapshotTask = null; // { month, label, status: 'pending'|'out-of-sync', title, desc }
   let alerts = [];
 
   function currentMonthStr() {
@@ -30,10 +30,29 @@ const NotificationsManager = (function () {
     return new Date(y, m, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   }
 
+  /** Switches to a view cleanly via the app shell's goto-view event and scrolls to target. */
+  function navigateTo(viewName, scrollTargetId, highlightBox) {
+    close();
+    window.dispatchEvent(new CustomEvent('goto-view', { detail: viewName }));
+    if (scrollTargetId) {
+      setTimeout(function () {
+        const el = $(scrollTargetId);
+        if (el && !el.hidden) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          if (highlightBox) {
+            el.classList.remove('pulse-highlight');
+            void el.offsetWidth;
+            el.classList.add('pulse-highlight');
+          }
+        }
+      }, 120);
+    }
+  }
+
   /** Calculates total unread actionable items. */
   function getUnreadCount() {
     let count = 0;
-    if (offlineItems.length > 0) count += 1;
+    if (offlineItems.length > 0) count += offlineItems.length;
     if (snapshotTask) count += 1;
     count += alerts.length;
     return count;
@@ -52,20 +71,20 @@ const NotificationsManager = (function () {
     }
   }
 
-  /** Refreshes offline queue items. */
+  /** Refreshes offline queue items directly from Queue. */
   async function refreshQueue() {
     try {
-      offlineItems = (window.Queue && Queue.all) ? await Queue.all() : [];
+      offlineItems = (typeof Queue !== 'undefined' && Queue.all) ? await Queue.all() : [];
     } catch (e) {
       offlineItems = [];
     }
-    checkRateAlerts();
+    checkSmartAlerts();
     render();
     updateBadge();
   }
 
-  /** Checks for foreign currency entries with suspicious/missing rate. */
-  function checkRateAlerts() {
+  /** Checks for foreign currency rate issues and monthly rollover notice. */
+  function checkSmartAlerts() {
     alerts = [];
     const missingRates = offlineItems.filter(function (i) {
       const p = i.payload || {};
@@ -74,50 +93,52 @@ const NotificationsManager = (function () {
     if (missingRates.length > 0) {
       alerts.push({
         id: 'rate-warning',
-        type: 'warning',
         title: '⚠️ Exchange Rate Check',
-        desc: missingRates.length + ' offline entry has conversion rate = 1. Please edit and verify.',
-        actionLabel: 'Edit in Add Form',
-        onAction: function () {
-          close();
-          if (window.gotoView) gotoView('add');
-        }
+        desc: missingRates.length + ' offline entry has conversion rate = 1. Click to edit & verify.',
+        actionLabel: 'Review Offline Entries →',
+        onAction: function () { navigateTo('add', 'pending-box', true); }
       });
     }
 
-    // Monthly rollover notice on days 1 to 5
+    // Monthly rollover notice on days 1 to 3
     const today = new Date();
-    if (today.getDate() <= 5) {
+    if (today.getDate() <= 3) {
       const pName = formatMonthName(prevMonthStr());
       alerts.push({
         id: 'monthly-close',
-        type: 'ok',
         title: '🎉 New Month Started',
-        desc: pName + ' has ended. Review your monthly savings and expense report.',
-        actionLabel: 'View Reports',
-        onAction: function () {
-          close();
-          if (window.gotoView) gotoView('reports');
-        }
+        desc: pName + ' has ended. Review your monthly savings and report.',
+        actionLabel: 'View Reports →',
+        onAction: function () { navigateTo('reports'); }
       });
     }
   }
 
   /**
    * ReportsView or DashboardView calls this when report data is loaded.
-   * Checks if monthly snapshot is pending or out of sync.
+   * Snapshot reminder triggers specifically on the month-end date (last day of the month),
+   * or during the first 7 days of a new month if the previous month has no saved snapshot.
    */
   function checkSnapshotStatus(monthStr, report) {
     if (!report) return;
+    const today = new Date();
+    const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate();
+    const isMonthEndDate = today.getDate() === lastDayOfMonth;
+
     const nowMonth = currentMonthStr();
     const prevMonth = prevMonthStr();
-    const todayDay = new Date().getDate();
 
-    // Check if snapshot is needed:
-    // 1) For previous month if not saved
-    // 2) For current month if day >= 25
-    const isTargetMonth = (monthStr === prevMonth) || (monthStr === nowMonth && todayDay >= 25);
-    if (!isTargetMonth) return;
+    const isTargetCurrent = (monthStr === nowMonth && isMonthEndDate);
+    const isTargetPrev = (monthStr === prevMonth && today.getDate() <= 7);
+
+    if (!isTargetCurrent && !isTargetPrev) {
+      if (snapshotTask && snapshotTask.month === monthStr) {
+        snapshotTask = null;
+        render();
+        updateBadge();
+      }
+      return;
+    }
 
     const s = report.snapshot;
     const mLabel = formatMonthName(monthStr);
@@ -127,7 +148,7 @@ const NotificationsManager = (function () {
         month: monthStr,
         label: mLabel,
         status: 'pending',
-        title: '📸 ' + mLabel + ' Snapshot Pending',
+        title: '📸 ' + mLabel + ' Snapshot Due' + (isMonthEndDate ? ' Today (Month End)' : ''),
         desc: 'Save ' + mLabel + '’s final balances & totals to your Google Sheet.'
       };
     } else if (!s.matchesLive) {
@@ -136,10 +157,9 @@ const NotificationsManager = (function () {
         label: mLabel,
         status: 'out-of-sync',
         title: '⚠️ ' + mLabel + ' Snapshot Out of Sync',
-        desc: 'Entries were modified since last snapshot. Update snapshot in Sheet.'
+        desc: 'Entries were modified since last snapshot. Tap to update snapshot in Sheet.'
       };
     } else {
-      // Snapshot is up to date
       if (snapshotTask && snapshotTask.month === monthStr) {
         snapshotTask = null;
       }
@@ -149,10 +169,21 @@ const NotificationsManager = (function () {
     updateBadge();
   }
 
+  /** Formats a one-line summary for an offline entry preview row. */
+  function formatEntrySummary(p) {
+    const amt = typeof Ui !== 'undefined' && Ui.money ? Ui.money(p.amount) : p.amount;
+    const what = p.category || p.institution || '';
+    return p.type + ' · ' + amt + ' ' + p.currency + (what ? ' · ' + what : '');
+  }
+
   /** Renders the contents of the notification drawer. */
   function render() {
     const outboxSec = $('notif-section-outbox');
     const outboxCount = $('notif-outbox-count');
+    const outboxSummary = $('notif-outbox-summary');
+    const outboxList = $('notif-outbox-list');
+    const sendAllBtn = $('notif-btn-send-all');
+
     const snapSec = $('notif-section-snapshot');
     const snapTitle = $('notif-snap-title');
     const snapDesc = $('notif-snap-desc');
@@ -161,14 +192,86 @@ const NotificationsManager = (function () {
     const emptySec = $('notif-empty');
 
     let hasAny = false;
+    const loggedIn = (typeof Api !== 'undefined' && Api.getToken) ? !!Api.getToken() : false;
 
     // 1. Outbox
     if (outboxSec) {
       if (offlineItems.length > 0) {
         outboxSec.hidden = false;
         hasAny = true;
+
         if (outboxCount) {
           outboxCount.textContent = offlineItems.length + (offlineItems.length === 1 ? ' entry' : ' entries') + ' waiting';
+        }
+
+        if (outboxSummary) {
+          if (loggedIn) {
+            let totalBdt = 0;
+            offlineItems.forEach(function (i) {
+              const amt = Number(i.payload.amount) || 0;
+              const rate = Number(i.payload.rate) || 1;
+              totalBdt += (i.payload.currency === 'BDT' ? amt : amt * rate);
+            });
+            const formatted = typeof Ui !== 'undefined' && Ui.money ? Ui.money(totalBdt) : String(totalBdt);
+            outboxSummary.textContent = '📥 ' + offlineItems.length + ' Offline ' +
+              (offlineItems.length === 1 ? 'Entry' : 'Entries') + ' (~ \u09F3 ' + formatted + ')';
+          } else {
+            outboxSummary.textContent = '🔒 ' + offlineItems.length + ' Offline ' +
+              (offlineItems.length === 1 ? 'Entry' : 'Entries') + ' (Unlock PIN to manage)';
+          }
+        }
+
+        if (outboxList) {
+          outboxList.innerHTML = '';
+          if (loggedIn) {
+            offlineItems.forEach(function (item) {
+              const p = item.payload || {};
+              const row = document.createElement('div');
+              row.className = 'notif-outbox-row';
+              row.title = 'Click to edit or manage this offline entry';
+
+              const info = document.createElement('div');
+              info.className = 'notif-outbox-row-info';
+
+              const t = document.createElement('div');
+              t.className = 'notif-outbox-row-title';
+              t.textContent = formatEntrySummary(p);
+              info.appendChild(t);
+
+              const sub = document.createElement('div');
+              sub.className = 'notif-outbox-row-sub';
+              const statusTxt = item.status === 'rejected'
+                ? 'Rejected: ' + (item.error || 'Check details')
+                : (item.hold ? 'Draft (Hold) · Tap to edit' : (navigator.onLine ? 'Ready to send' : 'Waiting for internet'));
+              sub.textContent = (p.date || '') + ' · ' + statusTxt;
+              info.appendChild(sub);
+
+              row.appendChild(info);
+
+              const tag = document.createElement('span');
+              tag.className = 'btn ghost small';
+              tag.style.padding = '3px 8px';
+              tag.style.fontSize = '0.75rem';
+              tag.textContent = '✏️ Edit';
+              row.appendChild(tag);
+
+              row.addEventListener('click', function (e) {
+                e.stopPropagation();
+                close();
+                if (typeof EntryForm !== 'undefined' && EntryForm.startEditOffline) {
+                  EntryForm.startEditOffline(item);
+                } else {
+                  navigateTo('add', 'pending-box', true);
+                }
+              });
+
+              outboxList.appendChild(row);
+            });
+          }
+        }
+
+        if (sendAllBtn) {
+          sendAllBtn.hidden = !(navigator.onLine && loggedIn);
         }
       } else {
         outboxSec.hidden = true;
@@ -214,7 +317,10 @@ const NotificationsManager = (function () {
             btn.className = 'btn ghost small';
             btn.style.marginTop = '6px';
             btn.textContent = a.actionLabel;
-            btn.addEventListener('click', a.onAction);
+            btn.addEventListener('click', function (e) {
+              e.stopPropagation();
+              a.onAction();
+            });
             item.appendChild(btn);
           }
           alertList.appendChild(item);
@@ -264,7 +370,7 @@ const NotificationsManager = (function () {
       });
     }
 
-    // Net-pill also opens notifications
+    // Net-pill icon also opens notifications
     const netPill = $('net-pill');
     if (netPill) {
       netPill.addEventListener('click', function (e) {
@@ -297,42 +403,58 @@ const NotificationsManager = (function () {
       }
     });
 
+    // Clicking anywhere on the Offline Outbox notification section opens the Offline page
+    const outboxSec = $('notif-section-outbox');
+    if (outboxSec) {
+      outboxSec.addEventListener('click', function (e) {
+        if (e.target.closest('button')) return;
+        navigateTo('add', 'pending-box', true);
+      });
+    }
+
     // Send All Now inside Drawer
     const sendAllBtn = $('notif-btn-send-all');
     if (sendAllBtn) {
-      sendAllBtn.addEventListener('click', async function () {
+      sendAllBtn.addEventListener('click', async function (e) {
+        e.stopPropagation();
         sendAllBtn.disabled = true;
         sendAllBtn.textContent = 'Syncing...';
-        if (window.Sync && Sync.sendAll) {
-          await Sync.sendAll();
-        } else if (window.Sync && Sync.run) {
-          await Sync.run();
+        try {
+          if (typeof Sync !== 'undefined' && Sync.sendAll) {
+            await Sync.sendAll();
+          } else if (typeof Sync !== 'undefined' && Sync.run) {
+            await Sync.run({ releaseHold: true });
+          }
+        } finally {
+          sendAllBtn.disabled = false;
+          sendAllBtn.textContent = '🚀 Send All Now';
+          refreshQueue();
         }
-        sendAllBtn.disabled = false;
-        sendAllBtn.textContent = '🚀 Send All Now';
-        refreshQueue();
       });
     }
 
-    // View Outbox inside Drawer
+    // Open Offline Page button inside Drawer
     const viewOutboxBtn = $('notif-btn-view-outbox');
     if (viewOutboxBtn) {
-      viewOutboxBtn.addEventListener('click', function () {
-        close();
-        if (window.gotoView) gotoView('add');
-        const pBox = $('pending-box');
-        if (pBox) pBox.scrollIntoView({ behavior: 'smooth' });
+      viewOutboxBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        navigateTo('add', 'pending-box', true);
       });
     }
 
-    // Go to Snapshot button
+    // Clicking Snapshot notification section or button goes to Reports -> Snapshot
+    const snapSec = $('notif-section-snapshot');
+    if (snapSec) {
+      snapSec.addEventListener('click', function (e) {
+        if (e.target.closest('button')) return;
+        navigateTo('reports', 'r-snap-btn', false);
+      });
+    }
     const goSnapBtn = $('notif-btn-go-snap');
     if (goSnapBtn) {
-      goSnapBtn.addEventListener('click', function () {
-        close();
-        if (window.gotoView) gotoView('reports');
-        const snapBtn = $('r-snap-btn');
-        if (snapBtn) snapBtn.scrollIntoView({ behavior: 'smooth' });
+      goSnapBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        navigateTo('reports', 'r-snap-btn', false);
       });
     }
 
@@ -356,6 +478,7 @@ const NotificationsManager = (function () {
   }
 
   const api = {
+    init: init,
     open: open,
     close: close,
     toggle: toggle,

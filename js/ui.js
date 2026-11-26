@@ -64,5 +64,7 @@ const Ui = (function () {
     timer = setTimeout(hide, action ? 7000 : 3200);
   }
 
-  return { money: money, toast: toast, hide: hide };
+  const api = { money: money, toast: toast, hide: hide };
+  if (typeof window !== 'undefined') window.Ui = api;
+  return api;
 })();

@@ -71,5 +71,7 @@ const Sync = (function () {
     setInterval(run, 30000);
   }
 
-  return { run: run, sendAll: sendAll, start: start };
+  const api = { run: run, sendAll: sendAll, start: start };
+  if (typeof window !== 'undefined') window.Sync = api;
+  return api;
 })();

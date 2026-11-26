@@ -109,7 +109,7 @@ const PendingView = (function () {
     }
   }
 
-  /** Redraws the card and the pill note from the Queue. */
+  /** Redraws the card from the Queue. */
   async function refresh() {
     const mine = ++seq;
     let items = [];
@@ -117,11 +117,9 @@ const PendingView = (function () {
     if (mine !== seq) return;
     const box = $('pending-box');
     const list = $('pending-list');
-    const pill = $('net-pill');
     list.textContent = '';
     if (!items.length) {
       box.hidden = true;
-      delete pill.dataset.waiting;
       return;
     }
     const loggedIn = !!Api.getToken();
@@ -138,7 +136,6 @@ const PendingView = (function () {
       subSummary.textContent = items.length + (items.length === 1 ? ' entry' : ' entries') +
         ' waiting \u00B7 Total ~ \u09F3 ' + Ui.money(totalBdt);
     }
-    pill.dataset.waiting = ' · ' + items.length + ' waiting';
     items.forEach(function (i) { list.appendChild(row(i, loggedIn)); });
     $('btn-send-now').hidden = !(navigator.onLine && loggedIn);
     const discardAllBtn = $('btn-discard-all');
@@ -168,5 +165,7 @@ const PendingView = (function () {
     refresh();
   }
 
-  return { init: init, refresh: refresh };
+  const api = { init: init, refresh: refresh };
+  if (typeof window !== 'undefined') window.PendingView = api;
+  return api;
 })();

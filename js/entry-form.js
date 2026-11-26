@@ -539,7 +539,7 @@ const EntryForm = (function () {
   // Start right away: this script is loaded at the end of the page.
   init();
 
-  return {
+  const api = {
     init: init,
     load: load,
     clear: clear,
@@ -548,4 +548,6 @@ const EntryForm = (function () {
     loadDraft: loadDraft,
     startEditOffline: startEditOffline
   };
+  if (typeof window !== 'undefined') window.EntryForm = api;
+  return api;
 })();

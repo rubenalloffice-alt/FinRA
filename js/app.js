@@ -43,6 +43,7 @@
     DashboardView.load();
     EntryForm.load();
     PendingView.refresh();
+    if (typeof NotificationsManager !== 'undefined') NotificationsManager.refreshQueue();
     Sync.run();
   }
 
@@ -53,6 +54,7 @@
     showView('add');
     EntryForm.load();
     PendingView.refresh();
+    if (typeof NotificationsManager !== 'undefined') NotificationsManager.refreshQueue();
   }
 
   /** Leaves guest mode and asks for the PIN. */
@@ -72,12 +74,13 @@
     Settings.clear();
   }
 
-  /** Sets the Online/Offline pill. */
+  /** Sets the Online/Offline icon state (Green Online / Red No-Internet). */
   function updateNetPill() {
     const pill = $('net-pill');
     const online = navigator.onLine;
-    pill.textContent = online ? 'Online' : 'Offline';
-    pill.className = 'pill ' + (online ? 'ok' : 'off');
+    pill.className = 'net-status-btn ' + (online ? 'ok' : 'off');
+    pill.title = online ? 'Online (Connected)' : 'No Internet (Offline Mode)';
+    pill.setAttribute('aria-label', pill.title);
     $('guest-box').hidden = online || !Api.getUrl();
   }
 
@@ -369,6 +372,7 @@
     DashboardView.init();
     EntryForm.init();
     PendingView.init();
+    if (typeof NotificationsManager !== 'undefined') NotificationsManager.init();
     Sync.start();
     $('btn-guest').addEventListener('click', enterGuest);
     $('form-setup').addEventListener('submit', onSetupSubmit);

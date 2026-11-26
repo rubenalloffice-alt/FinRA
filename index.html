@@ -245,7 +245,23 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             <span>Log Out</span>
           </button>
-          <span id="net-pill" class="pill ok">Online</span>
+          <button id="net-pill" class="net-status-btn ok" type="button" title="Online (Connected)" aria-label="Network Status">
+            <svg class="net-svg-online" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12.55a11 11 0 0 1 14.08 0"/>
+              <path d="M1.42 9a16 16 0 0 1 21.16 0"/>
+              <path d="M8.53 16.11a6 6 0 0 1 6.95 0"/>
+              <circle cx="12" cy="20" r="1" fill="currentColor"/>
+            </svg>
+            <svg class="net-svg-offline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="2" y1="2" x2="22" y2="22"/>
+              <path d="M8.5 16.5a5 5 0 0 1 7 0"/>
+              <path d="M2 8.82a15 15 0 0 1 4.17-2.65"/>
+              <path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76"/>
+              <path d="M16.85 11.25a10 10 0 0 1 2.22 1.68"/>
+              <path d="M5 13a10 10 0 0 1 5.24-2.76"/>
+              <circle cx="12" cy="20" r="1" fill="currentColor"/>
+            </svg>
+          </button>
         </div>
       </header>
 
@@ -693,15 +709,17 @@
 
       <div class="notif-body">
         <!-- 1. Offline Outbox Section -->
-        <div id="notif-section-outbox" class="notif-section" hidden>
+        <div id="notif-section-outbox" class="notif-section notif-clickable" hidden>
           <div class="notif-section-head">
-            <span class="notif-section-tag tag-warning">Offline Outbox</span>
+            <span class="notif-section-tag tag-warning">Offline Entries</span>
             <span id="notif-outbox-count" class="notif-section-count">0 waiting</span>
           </div>
-          <p class="notif-section-desc">Entries recorded on phone waiting to sync to your Google Sheet.</p>
+          <div id="notif-outbox-summary" class="notif-item-title">📥 Entries waiting to sync</div>
+          <p class="notif-section-desc">Tap any entry or click below to review, edit &amp; sync on the Offline Entries page.</p>
+          <div id="notif-outbox-list" class="notif-outbox-preview-list"></div>
           <div class="notif-section-actions">
             <button type="button" id="notif-btn-send-all" class="btn primary small">🚀 Send All Now</button>
-            <button type="button" id="notif-btn-view-outbox" class="btn ghost small">👁️ View in Add Form</button>
+            <button type="button" id="notif-btn-view-outbox" class="btn ghost small">👁️ Open Offline Page &rarr;</button>
           </div>
         </div>
 

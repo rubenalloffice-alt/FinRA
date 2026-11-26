@@ -2082,6 +2082,11 @@ textarea {
   padding: 6px 10px;
 }
 
+.topbar-btn.notif-btn svg,
+.net-status-btn svg {
+  pointer-events: none;
+}
+
 .notif-badge {
   position: absolute;
   top: -4px;
@@ -2099,6 +2104,7 @@ textarea {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 6px rgba(239, 68, 68, 0.45);
+  pointer-events: none;
   animation: badgePop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -2107,14 +2113,110 @@ textarea {
   100% { transform: scale(1); opacity: 1; }
 }
 
-#net-pill {
+/* Network Status Logo Button (Icon Only: Green Online / Red No-Internet) */
+.net-status-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  border: 1px solid var(--line);
+  transition: transform 0.15s ease, background-color 0.2s ease, border-color 0.2s ease;
 }
 
-#net-pill:hover {
-  transform: scale(1.04);
-  opacity: 0.9;
+.net-status-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.net-status-btn.ok {
+  color: var(--ok);
+  background: var(--ok-bg);
+  border-color: color-mix(in srgb, var(--ok) 35%, transparent);
+}
+
+.net-status-btn.ok .net-svg-online { display: block; }
+.net-status-btn.ok .net-svg-offline { display: none; }
+
+.net-status-btn.off {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border-color: color-mix(in srgb, var(--danger) 40%, transparent);
+}
+
+.net-status-btn.off .net-svg-online { display: none; }
+.net-status-btn.off .net-svg-offline { display: block; }
+
+.net-status-btn:hover {
+  transform: scale(1.06);
+}
+
+/* Preview rows inside Notification Drawer */
+.notif-outbox-preview-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.notif-outbox-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.notif-outbox-row:hover {
+  border-color: var(--brand);
+  background: var(--surface-raised);
+}
+
+.notif-outbox-row-info {
+  min-width: 0;
+  flex: 1;
+}
+
+.notif-outbox-row-title {
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.notif-outbox-row-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.notif-clickable {
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+}
+
+.notif-clickable:hover {
+  border-color: var(--brand);
+}
+
+@keyframes pendingPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.35); }
+}
+
+.pending-card.pulse-highlight {
+  animation: pendingPulse 0.8s ease 2;
 }
 
 /* Notification Drawer Overlay */

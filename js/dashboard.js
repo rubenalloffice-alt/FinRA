@@ -416,11 +416,13 @@ const DashboardView = (function () {
     });
   }
 
-  return {
+  const api = {
     init: init,
     show: show,
     clear: clear,
     load: load,
     invalidateCache: invalidateCache
   };
+  if (typeof window !== 'undefined') window.DashboardView = api;
+  return api;
 })();

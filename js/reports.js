@@ -430,5 +430,7 @@ const ReportsView = (function () {
     renderAll(null, null);
   }
 
-  return { show: show, clear: clear, refresh: load, invalidateCache: invalidateCache };
+  const api = { show: show, clear: clear, refresh: load, invalidateCache: invalidateCache };
+  if (typeof window !== 'undefined') window.ReportsView = api;
+  return api;
 })();

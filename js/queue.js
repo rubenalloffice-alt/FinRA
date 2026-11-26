@@ -128,7 +128,7 @@ const Queue = (function () {
     changed();
   }
 
-  return {
+  const api = {
     add: add,
     put: put,
     remove: remove,
@@ -138,4 +138,6 @@ const Queue = (function () {
     releaseAll: releaseAll,
     removeAll: removeAll
   };
+  if (typeof window !== 'undefined') window.Queue = api;
+  return api;
 })();

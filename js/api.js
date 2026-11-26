@@ -105,10 +105,12 @@ const Api = (function () {
     throw new ApiError(err.code || 'INTERNAL', err.message || 'Something went wrong.', err.details);
   }
 
-  return {
+  const api = {
     ApiError: ApiError,
     getUrl: getUrl, setUrl: setUrl, clearUrl: clearUrl,
     getToken: getToken, setToken: setToken,
     call: call
   };
+  if (typeof window !== 'undefined') window.Api = api;
+  return api;
 })();

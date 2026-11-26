@@ -163,8 +163,48 @@ const Entries = (function () {
       (res.total > res.entries.length ? ' (showing the first ' + res.entries.length + ', use filters to narrow down)' : '');
   }
 
+  const CACHE_TTL_MS = 180000;
+  const cache = {};
+
+  function invalidateCache() {
+    Object.keys(cache).forEach(function (k) { delete cache[k]; });
+  }
+
+  function setLoadingState(loading) {
+    const bar = $('m-label') ? $('m-label').closest('.month-bar') : null;
+    if (bar) bar.classList.toggle('is-loading', loading);
+
+    const label = $('m-label');
+    if (label) {
+      label.innerHTML = loading
+        ? '<span class="spinner-sm"></span> ' + monthLabel(month)
+        : monthLabel(month);
+    }
+
+    const prev = $('m-prev');
+    const next = $('m-next');
+    if (prev) prev.disabled = loading || month <= '2000-01';
+    if (next) next.disabled = loading || month >= currentMonth();
+
+    ['t-income', 't-expense', 't-net'].forEach(function (id) {
+      const el = $(id);
+      if (el) el.classList.toggle('skeleton', loading);
+    });
+
+    if (loading) {
+      $('list-info').textContent = 'Fetching entries for ' + monthLabel(month) + '...';
+      $('entry-list').innerHTML = '<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>';
+    } else {
+      ['t-income', 't-expense', 't-net'].forEach(function (id) {
+        const el = $(id);
+        if (el) el.classList.add('fade-in');
+      });
+      $('entry-list').classList.add('fade-in');
+    }
+  }
+
   /** Loads the list and the month totals for the current month and filters. */
-  async function load() {
+  async function load(force) {
     const my = ++seq;
     const f = readFilters();
     const query = { month: month, limit: PAGE_LIMIT };
@@ -174,7 +214,16 @@ const Entries = (function () {
     if (f.search) query.search = f.search;
     if (f.includeDeleted) query.includeDeleted = true;
 
-    $('list-info').textContent = 'Loading...';
+    const cacheKey = JSON.stringify(query);
+    const cached = cache[cacheKey];
+    if (!force && cached && (Date.now() - cached.time < CACHE_TTL_MS)) {
+      updateMonthBar();
+      renderTiles(cached.report);
+      renderList(cached.listRes);
+      return;
+    }
+
+    setLoadingState(true);
     let listRes = null;
     let report = null;
     let failure = null;
@@ -190,12 +239,18 @@ const Entries = (function () {
     }
     if (my !== seq) return;
 
+    setLoadingState(false);
     renderTiles(report);
     if (failure) {
       $('entry-list').textContent = '';
       $('list-info').textContent = 'Could not load entries: ' + failure.message;
       return;
     }
+    cache[cacheKey] = {
+      listRes: listRes,
+      report: report,
+      time: Date.now()
+    };
     renderList(listRes);
   }
 
@@ -204,8 +259,10 @@ const Entries = (function () {
     btn.disabled = true;
     try {
       await Api.call('deleteEntry', { entryId: e.entryId });
+      invalidateCache();
+      if (window.DashboardView && DashboardView.invalidateCache) DashboardView.invalidateCache();
       Ui.toast('Entry deleted', { label: 'Undo', run: function () { restoreEntry(e); } });
-      load();
+      load(true);
     } catch (err) {
       btn.disabled = false;
       Ui.toast(err.message);
@@ -216,11 +273,13 @@ const Entries = (function () {
   async function restoreEntry(e) {
     try {
       await Api.call('deleteEntry', { entryId: e.entryId, restore: true });
+      invalidateCache();
+      if (window.DashboardView && DashboardView.invalidateCache) DashboardView.invalidateCache();
       Ui.toast('Restored');
     } catch (err) {
       Ui.toast(err.message);
     }
-    load();
+    load(true);
   }
 
   /** Wires the controls once. */
@@ -262,5 +321,5 @@ const Entries = (function () {
     renderTiles(null);
   }
 
-  return { show: show, clear: clear, refresh: load };
+  return { show: show, clear: clear, refresh: load, invalidateCache: invalidateCache };
 })();

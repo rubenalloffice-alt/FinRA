@@ -290,10 +290,59 @@ const ReportsView = (function () {
     renderSnapshot(report);
   }
 
+  const CACHE_TTL_MS = 180000;
+  const cache = {};
+
+  function invalidateCache() {
+    Object.keys(cache).forEach(function (k) { delete cache[k]; });
+  }
+
+  function setLoadingState(loading) {
+    const bar = $('r-label') ? $('r-label').closest('.month-bar') : null;
+    if (bar) bar.classList.toggle('is-loading', loading);
+
+    const label = $('r-label');
+    if (label) {
+      label.innerHTML = loading
+        ? '<span class="spinner-sm"></span> ' + monthLabel(month)
+        : monthLabel(month);
+    }
+
+    const prev = $('r-prev');
+    const next = $('r-next');
+    if (prev) prev.disabled = loading || month <= '2000-01';
+    if (next) next.disabled = loading || month >= currentMonth();
+
+    ['r-t-income', 'r-t-expense', 'r-t-net', 'r-t-rate'].forEach(function (id) {
+      const el = $(id);
+      if (el) el.classList.toggle('skeleton', loading);
+    });
+
+    if (loading) {
+      $('r-status').textContent = 'Calculating report for ' + monthLabel(month) + '...';
+      $('r-exp-cats').innerHTML = '<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>';
+      $('r-inc-cats').innerHTML = '<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>';
+    } else {
+      $('r-status').textContent = '';
+      ['r-t-income', 'r-t-expense', 'r-t-net', 'r-t-rate'].forEach(function (id) {
+        const el = $(id);
+        if (el) el.classList.add('fade-in');
+      });
+    }
+  }
+
   /** Loads the report and balances for the current month. */
-  async function load() {
+  async function load(force) {
     const my = ++seq;
-    $('r-status').textContent = 'Loading...';
+
+    const cached = cache[month];
+    if (!force && cached && (Date.now() - cached.time < CACHE_TTL_MS)) {
+      updateMonthBar();
+      renderAll(cached.report, cached.balances);
+      return;
+    }
+
+    setLoadingState(true);
     let report = null;
     let balances = null;
     let failure = null;
@@ -308,12 +357,18 @@ const ReportsView = (function () {
       failure = e;
     }
     if (my !== seq) return;
+
+    setLoadingState(false);
     if (failure) {
       $('r-status').textContent = 'Could not load the report: ' + failure.message;
       renderAll(null, null);
       return;
     }
-    $('r-status').textContent = '';
+    cache[month] = {
+      report: report,
+      balances: balances,
+      time: Date.now()
+    };
     renderAll(report, balances);
   }
 
@@ -323,11 +378,12 @@ const ReportsView = (function () {
     btn.disabled = true;
     try {
       const res = await Api.call('saveReportSnapshot', { month: month });
+      invalidateCache();
       Ui.toast(res.replaced ? 'Snapshot updated' : 'Snapshot saved');
     } catch (e) {
       Ui.toast(e.message);
     }
-    load();
+    load(true);
   }
 
   /** Wires the controls once. */
@@ -354,5 +410,5 @@ const ReportsView = (function () {
     renderAll(null, null);
   }
 
-  return { show: show, clear: clear, refresh: load };
+  return { show: show, clear: clear, refresh: load, invalidateCache: invalidateCache };
 })();

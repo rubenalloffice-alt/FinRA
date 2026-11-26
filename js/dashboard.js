@@ -256,10 +256,84 @@ const DashboardView = (function () {
     });
   }
 
-  async function load() {
+  const CACHE_TTL_MS = 180000; // 3 minutes quick cache
+  const cache = {};
+
+  function invalidateCache() {
+    Object.keys(cache).forEach(function (k) { delete cache[k]; });
+  }
+
+  function setLoadingState(loading) {
+    const bar = $('dash-month-bar') || ($('dash-month-label') ? $('dash-month-label').closest('.month-bar') : null);
+    if (bar) bar.classList.toggle('is-loading', loading);
+
+    const label = $('dash-month-label');
+    if (label) {
+      label.innerHTML = loading
+        ? '<span class="spinner-sm"></span> ' + monthLabel(month)
+        : monthLabel(month);
+    }
+
+    const prev = $('dash-prev');
+    const next = $('dash-next');
+    if (prev) prev.disabled = loading || month <= '2000-01';
+    if (next) next.disabled = loading || month >= currentMonth();
+
+    const heroVal = $('dash-hero-balance');
+    const heroBadge = $('dash-hero-badge');
+    const metricIds = ['dash-income', 'dash-expense', 'dash-savings-rate', 'dash-entries-count'];
+
+    if (loading) {
+      if (heroVal) heroVal.classList.add('skeleton');
+      if (heroBadge) heroBadge.classList.add('skeleton');
+      metricIds.forEach(function (id) {
+        const el = $(id);
+        if (el) el.classList.add('skeleton');
+      });
+      $('dash-daily-chart').innerHTML = '<div class="skeleton skeleton-box"></div>';
+      $('dash-category-list').innerHTML = '<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>';
+      $('dash-recent-list').innerHTML = '<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>';
+      $('dash-savings-list').innerHTML = '<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>';
+    } else {
+      if (heroVal) { heroVal.classList.remove('skeleton'); heroVal.classList.add('fade-in'); }
+      if (heroBadge) { heroBadge.classList.remove('skeleton'); heroBadge.classList.add('fade-in'); }
+      metricIds.forEach(function (id) {
+        const el = $(id);
+        if (el) { el.classList.remove('skeleton'); el.classList.add('fade-in'); }
+      });
+    }
+  }
+
+  function applyData(report, listRes, balances) {
+    if (report && report.totals) {
+      renderHero(report.totals);
+      renderMetrics(report.totals);
+      renderDailyChart(report.daily);
+      renderCategories(report.expenseByCategory || [], report.totals.expense);
+      renderSavings(balances, report.savingsMovement);
+    } else {
+      renderHero(null);
+      renderMetrics(null);
+      renderDailyChart(null);
+      renderCategories([], 0);
+      renderSavings(balances, null);
+    }
+    renderRecent(listRes ? listRes.entries : []);
+  }
+
+  async function load(force) {
     const my = ++seq;
-    updateMonthBar();
     updateGreeting();
+
+    // Instant switch if present in fresh cache
+    const cached = cache[month];
+    if (!force && cached && (Date.now() - cached.time < CACHE_TTL_MS)) {
+      updateMonthBar();
+      applyData(cached.report, cached.listRes, cached.balances);
+      return;
+    }
+
+    setLoadingState(true);
 
     try {
       const [report, listRes, balances] = await Promise.all([
@@ -270,24 +344,19 @@ const DashboardView = (function () {
 
       if (my !== seq) return;
 
-      if (report && report.totals) {
-        renderHero(report.totals);
-        renderMetrics(report.totals);
-        renderDailyChart(report.daily);
-        renderCategories(report.expenseByCategory || [], report.totals.expense);
-        renderSavings(balances, report.savingsMovement);
-      } else {
-        renderHero(null);
-        renderMetrics(null);
-        renderDailyChart(null);
-        renderCategories([], 0);
-        renderSavings(balances, null);
-      }
+      cache[month] = {
+        report: report,
+        listRes: listRes,
+        balances: balances,
+        time: Date.now()
+      };
 
-      renderRecent(listRes ? listRes.entries : []);
+      setLoadingState(false);
+      applyData(report, listRes, balances);
 
     } catch (e) {
       if (my === seq) {
+        setLoadingState(false);
         renderHero(null);
         renderMetrics(null);
       }
@@ -331,6 +400,7 @@ const DashboardView = (function () {
     init: init,
     show: show,
     clear: clear,
-    load: load
+    load: load,
+    invalidateCache: invalidateCache
   };
 })();

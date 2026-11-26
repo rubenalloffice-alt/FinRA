@@ -561,6 +561,87 @@ textarea {
   font-size: 1.15rem;
   text-align: center;
   letter-spacing: -0.015em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+/* Month Bar Loading State */
+.month-bar.is-loading .month-label {
+  color: var(--brand);
+}
+
+.month-bar.is-loading .btn.icon {
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+/* Shimmer & Skeleton Loaders */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner-sm {
+  display: inline-block;
+  width: 15px;
+  height: 15px;
+  border: 2px solid var(--line-strong);
+  border-top-color: var(--brand);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  flex-shrink: 0;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--surface-raised) 25%,
+    var(--line) 50%,
+    var(--surface-raised) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: shimmer 1.6s infinite linear !important;
+  color: transparent !important;
+  border-color: transparent !important;
+  border-radius: 8px !important;
+  user-select: none !important;
+  pointer-events: none !important;
+}
+
+.skeleton-hero {
+  min-height: 42px;
+  width: 180px;
+  margin: 10px 0;
+  border-radius: 10px;
+}
+
+.skeleton-box {
+  width: 100%;
+  height: 120px;
+  border-radius: 14px;
+}
+
+.skeleton-row {
+  width: 100%;
+  height: 44px;
+  margin-bottom: 8px;
+  border-radius: 10px;
+}
+
+/* Smooth Fade-in upon Data Arrival */
+.fade-in {
+  animation: contentFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0.3; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .tiles {

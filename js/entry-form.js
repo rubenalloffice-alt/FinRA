@@ -387,6 +387,9 @@ const EntryForm = (function () {
           return;
         }
         const upd = await Api.call('updateEntry', payload);
+        if (window.DashboardView && DashboardView.invalidateCache) DashboardView.invalidateCache();
+        if (window.Entries && Entries.invalidateCache) Entries.invalidateCache();
+        if (window.ReportsView && ReportsView.invalidateCache) ReportsView.invalidateCache();
         flashSaveSuccess('✓ Updated!');
         Ui.toast('Updated: \u09F3 ' + Ui.money(upd.entry.amountBdt));
         leaveEdit();
@@ -403,6 +406,9 @@ const EntryForm = (function () {
         entryId = newId();
         return;
       }
+      if (window.DashboardView && DashboardView.invalidateCache) DashboardView.invalidateCache();
+      if (window.Entries && Entries.invalidateCache) Entries.invalidateCache();
+      if (window.ReportsView && ReportsView.invalidateCache) ReportsView.invalidateCache();
       flashSaveSuccess('✓ Saved!');
       Ui.toast(res.duplicate ? 'Already saved' : 'Saved: \u09F3 ' + Ui.money(res.entry.amountBdt));
       resetFields();

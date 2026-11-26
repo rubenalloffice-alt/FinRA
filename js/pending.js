@@ -58,12 +58,27 @@ const PendingView = (function () {
     const actions = el('div', 'pending-actions');
     if (item.status === 'rejected') {
       actions.appendChild(button('Fix', 'ghost', function () { fix(item); }));
-    } else if (item.hold) {
-      actions.appendChild(button('Send', 'ghost', function () { release(item); }));
+    } else {
+      actions.appendChild(button('✏️ Edit', 'ghost', function () { edit(item); }));
+      actions.appendChild(button('🚀 Send', 'ghost', function () { sendOne(item); }));
     }
-    actions.appendChild(button('Discard', 'ghost', function () { discard(item); }));
+    actions.appendChild(button('🗑️ Discard', 'ghost danger-text', function () { discard(item); }));
     r.appendChild(actions);
     return r;
+  }
+
+  /** Opens an offline entry in the Form for editing. */
+  function edit(item) {
+    if (window.EntryForm && EntryForm.startEditOffline) {
+      EntryForm.startEditOffline(item);
+    }
+  }
+
+  /** Sends a single waiting entry immediately. */
+  async function sendOne(item) {
+    item.hold = false;
+    await Queue.put(item);
+    Sync.run();
   }
 
   /** Opens a rejected entry in the Add form so it can be corrected. */
@@ -85,6 +100,15 @@ const PendingView = (function () {
     await Queue.remove(item.entryId);
   }
 
+  /** Discards all waiting entries at once. */
+  async function discardAll() {
+    if (!window.confirm('Discard all waiting entries? None of them will be saved.')) return;
+    if (Queue.removeAll) {
+      await Queue.removeAll();
+      Ui.toast('All waiting entries discarded');
+    }
+  }
+
   /** Redraws the card and the pill note from the Queue. */
   async function refresh() {
     const mine = ++seq;
@@ -103,9 +127,22 @@ const PendingView = (function () {
     const loggedIn = !!Api.getToken();
     box.hidden = false;
     $('pending-title').textContent = 'Waiting to be sent (' + items.length + ')';
+    const subSummary = $('pending-sub-summary');
+    if (subSummary) {
+      let totalBdt = 0;
+      items.forEach(function (i) {
+        const amt = Number(i.payload.amount) || 0;
+        const rate = Number(i.payload.rate) || 1;
+        totalBdt += (i.payload.currency === 'BDT' ? amt : amt * rate);
+      });
+      subSummary.textContent = items.length + (items.length === 1 ? ' entry' : ' entries') +
+        ' waiting \u00B7 Total ~ \u09F3 ' + Ui.money(totalBdt);
+    }
     pill.dataset.waiting = ' · ' + items.length + ' waiting';
     items.forEach(function (i) { list.appendChild(row(i, loggedIn)); });
     $('btn-send-now').hidden = !(navigator.onLine && loggedIn);
+    const discardAllBtn = $('btn-discard-all');
+    if (discardAllBtn) discardAllBtn.hidden = !loggedIn;
   }
 
   /** Connects the card once. */
@@ -115,7 +152,14 @@ const PendingView = (function () {
     window.addEventListener('queue-changed', refresh);
     window.addEventListener('online', refresh);
     window.addEventListener('offline', refresh);
-    $('btn-send-now').addEventListener('click', function () { Sync.run(); });
+    $('btn-send-now').addEventListener('click', function () {
+      if (Sync.sendAll) Sync.sendAll();
+      else Sync.run();
+    });
+    const discardAllBtn = $('btn-discard-all');
+    if (discardAllBtn) {
+      discardAllBtn.addEventListener('click', discardAll);
+    }
   }
 
   /** Starts the view (call once when the page loads). */

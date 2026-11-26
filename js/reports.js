@@ -291,6 +291,9 @@ const ReportsView = (function () {
     renderTop(report);
     renderSavings(report, balances);
     renderSnapshot(report);
+    if (window.NotificationsManager && NotificationsManager.checkSnapshotStatus) {
+      NotificationsManager.checkSnapshotStatus(month, report);
+    }
   }
 
   const CACHE_TTL_MS = 180000;

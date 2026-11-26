@@ -237,6 +237,10 @@
             <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
             <span>Install</span>
           </button>
+          <button id="btn-top-notif" class="topbar-btn notif-btn" type="button" title="Notifications &amp; Tasks" aria-label="Notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span id="notif-badge" class="notif-badge" hidden>0</span>
+          </button>
           <button id="btn-top-lock" class="topbar-btn" type="button" title="Log Out" aria-label="Log Out">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
             <span>Log Out</span>
@@ -353,8 +357,14 @@
       <section id="view-add" class="view" hidden>
         <div id="pending-box" class="card pending-card" hidden>
           <div class="pending-head">
-            <h3 id="pending-title">Waiting to be sent</h3>
-            <button id="btn-send-now" class="btn small ghost" type="button" hidden>Send now</button>
+            <div>
+              <h3 id="pending-title">Waiting to be sent</h3>
+              <p id="pending-sub-summary" class="muted small"></p>
+            </div>
+            <div class="pending-bulk-actions">
+              <button id="btn-send-now" class="btn small primary" type="button" hidden>🚀 Send All Now</button>
+              <button id="btn-discard-all" class="btn small ghost" type="button" hidden>Discard All</button>
+            </div>
           </div>
           <div id="pending-list"></div>
         </div>
@@ -419,7 +429,10 @@
           </div>
 
           <p id="entry-msg" class="msg" role="alert"></p>
-          <button id="btn-save" class="btn primary" type="submit">Save entry</button>
+          <div class="form-actions-row">
+            <button id="btn-save" class="btn primary" type="submit">Save entry</button>
+            <button id="btn-discard-offline" class="btn ghost danger-text" type="button" hidden>Discard Draft</button>
+          </div>
         </form>
       </section>
 
@@ -667,6 +680,62 @@
     </div>
   </div>
 
+  <!-- Notification Center Drawer / Popover -->
+  <div id="notif-drawer-overlay" class="notif-overlay" hidden>
+    <div id="notif-drawer-card" class="notif-card" role="dialog" aria-modal="true" aria-label="Notifications Center">
+      <div class="notif-header">
+        <div class="notif-header-title">
+          <span class="notif-header-icon">🔔</span>
+          <h3>Notifications &amp; Tasks</h3>
+        </div>
+        <button type="button" id="notif-btn-close" class="btn ghost icon small" aria-label="Close notifications">✕</button>
+      </div>
+
+      <div class="notif-body">
+        <!-- 1. Offline Outbox Section -->
+        <div id="notif-section-outbox" class="notif-section" hidden>
+          <div class="notif-section-head">
+            <span class="notif-section-tag tag-warning">Offline Outbox</span>
+            <span id="notif-outbox-count" class="notif-section-count">0 waiting</span>
+          </div>
+          <p class="notif-section-desc">Entries recorded on phone waiting to sync to your Google Sheet.</p>
+          <div class="notif-section-actions">
+            <button type="button" id="notif-btn-send-all" class="btn primary small">🚀 Send All Now</button>
+            <button type="button" id="notif-btn-view-outbox" class="btn ghost small">👁️ View in Add Form</button>
+          </div>
+        </div>
+
+        <!-- 2. Snapshot To-Do Section -->
+        <div id="notif-section-snapshot" class="notif-section" hidden>
+          <div class="notif-section-head">
+            <span class="notif-section-tag tag-info">Month-End Task</span>
+            <span class="notif-status-pill">Pending</span>
+          </div>
+          <div id="notif-snap-title" class="notif-item-title">📸 Monthly Snapshot Pending</div>
+          <p id="notif-snap-desc" class="notif-section-desc">Save this month's final balances &amp; totals to your Google Sheet.</p>
+          <div class="notif-section-actions">
+            <button type="button" id="notif-btn-go-snap" class="btn primary small">Take Snapshot in Reports &rarr;</button>
+          </div>
+        </div>
+
+        <!-- 3. Smart Alerts / Advice Section -->
+        <div id="notif-section-alerts" class="notif-section" hidden>
+          <div class="notif-section-head">
+            <span class="notif-section-tag tag-ok">Notice</span>
+          </div>
+          <div id="notif-alert-list" class="notif-alert-list"></div>
+        </div>
+
+        <!-- 4. Empty State -->
+        <div id="notif-empty" class="notif-empty">
+          <div class="notif-empty-icon">✓</div>
+          <h4>All caught up!</h4>
+          <p class="muted small">No pending offline entries or tasks.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script src="js/config.js"></script>
   <script src="js/api.js"></script>
   <script src="js/ui.js"></script>
@@ -675,6 +744,7 @@
   <script src="js/sync.js"></script>
   <script src="js/entry-form.js"></script>
   <script src="js/pending.js"></script>
+  <script src="js/notifications.js"></script>
   <script src="js/entries.js"></script>
   <script src="js/reports.js"></script>
   <script src="js/dashboard.js"></script>

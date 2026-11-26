@@ -15,13 +15,17 @@ const Sync = (function () {
 
   /**
    * Tries to send everything that can be sent right now.
+   * @param {{releaseHold?: boolean}=} options If releaseHold is true, un-holds entries so all can sync.
    * @returns {Promise<number>} How many entries were sent.
    */
-  async function run() {
+  async function run(options) {
     if (running || !navigator.onLine || !Api.getToken()) return 0;
     running = true;
     let sent = 0;
     try {
+      if (options && options.releaseHold && Queue.releaseAll) {
+        await Queue.releaseAll();
+      }
       const items = (await Queue.all()).filter(function (i) { return i.status === 'pending' && !i.hold; });
       for (let k = 0; k < items.length; k++) {
         const item = items[k];
@@ -44,8 +48,18 @@ const Sync = (function () {
     } finally {
       running = false;
     }
-    if (sent > 0) Ui.toast(sent === 1 ? '1 waiting entry sent \u2713' : sent + ' waiting entries sent \u2713');
+    if (sent > 0) {
+      Ui.toast(sent === 1 ? '1 waiting entry sent \u2713' : sent + ' waiting entries sent \u2713');
+      if (window.DashboardView && DashboardView.invalidateCache) DashboardView.invalidateCache();
+      if (window.Entries && Entries.invalidateCache) Entries.invalidateCache();
+      if (window.ReportsView && ReportsView.invalidateCache) ReportsView.invalidateCache();
+    }
     return sent;
+  }
+
+  /** Releases all holds and sends all pending items at once. */
+  async function sendAll() {
+    return await run({ releaseHold: true });
   }
 
   /** Starts the automatic triggers (once). */
@@ -57,5 +71,5 @@ const Sync = (function () {
     setInterval(run, 30000);
   }
 
-  return { run: run, start: start };
+  return { run: run, sendAll: sendAll, start: start };
 })();

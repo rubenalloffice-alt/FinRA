@@ -322,6 +322,9 @@ const DashboardView = (function () {
       renderSavings(balances, null);
     }
     renderRecent(listRes ? listRes.entries : []);
+    if (window.NotificationsManager && NotificationsManager.checkSnapshotStatus && report) {
+      NotificationsManager.checkSnapshotStatus(month, report);
+    }
   }
 
   async function load(force) {

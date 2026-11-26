@@ -93,5 +93,49 @@ const Queue = (function () {
     return (items || []).sort(function (a, b) { return a.createdAt < b.createdAt ? -1 : 1; });
   }
 
-  return { add: add, put: put, remove: remove, all: all };
+  /** Gets one item by entryId. */
+  async function get(entryId) {
+    return await run('readonly', function (s) { return s.get(entryId); });
+  }
+
+  /** Updates the payload of an existing queued entry. */
+  async function updatePayload(entryId, newPayload) {
+    const item = await get(entryId);
+    if (!item) return null;
+    item.payload = newPayload;
+    item.status = 'pending';
+    item.error = '';
+    await run('readwrite', function (s) { return s.put(item); });
+    changed();
+    return item;
+  }
+
+  /** Releases hold on all items so they can be synced. */
+  async function releaseAll() {
+    const items = await all();
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].hold) {
+        items[i].hold = false;
+        await run('readwrite', function (s) { return s.put(items[i]); });
+      }
+    }
+    changed();
+  }
+
+  /** Clears all items from the Queue. */
+  async function removeAll() {
+    await run('readwrite', function (s) { return s.clear(); });
+    changed();
+  }
+
+  return {
+    add: add,
+    put: put,
+    remove: remove,
+    all: all,
+    get: get,
+    updatePayload: updatePayload,
+    releaseAll: releaseAll,
+    removeAll: removeAll
+  };
 })();

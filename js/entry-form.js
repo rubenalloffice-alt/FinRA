@@ -91,14 +91,29 @@ const EntryForm = (function () {
 
   /** Text of the save button for the current mode. */
   function saveLabel() {
-    return mode === 'edit' ? 'Update entry' : 'Save entry';
+    if (mode === 'edit') return 'Update entry';
+    if (mode === 'edit-offline') return 'Save changes';
+    return 'Save entry';
   }
 
   /** Updates the title, the save button and the cancel button for the mode. */
   function applyMode() {
-    $('form-title').textContent = mode === 'edit' ? 'Edit entry' : 'Add entry';
+    if (mode === 'edit') {
+      $('form-title').textContent = 'Edit entry';
+      $('btn-cancel-edit').textContent = 'Cancel edit';
+      $('btn-cancel-edit').hidden = false;
+      if ($('btn-discard-offline')) $('btn-discard-offline').hidden = true;
+    } else if (mode === 'edit-offline') {
+      $('form-title').textContent = 'Edit offline entry (Draft)';
+      $('btn-cancel-edit').textContent = 'Cancel';
+      $('btn-cancel-edit').hidden = false;
+      if ($('btn-discard-offline')) $('btn-discard-offline').hidden = false;
+    } else {
+      $('form-title').textContent = 'Add entry';
+      $('btn-cancel-edit').hidden = true;
+      if ($('btn-discard-offline')) $('btn-discard-offline').hidden = true;
+    }
     $('btn-save').textContent = saveLabel();
-    $('btn-cancel-edit').hidden = mode !== 'edit';
   }
 
   /** Rebuilds category and institution choices for the current type. */
@@ -324,6 +339,31 @@ const EntryForm = (function () {
     $('entry-msg').textContent = 'Fix the highlighted problem, then save again.';
   }
 
+  /** Loads an existing offline entry into the form for editing. */
+  function startEditOffline(item) {
+    if (!lists) {
+      load().then(function () { startEditOffline(item); });
+      return;
+    }
+    mode = 'edit-offline';
+    entryId = item.entryId;
+    const p = item.payload;
+    setType(p.type);
+    $('f-date').value = p.date;
+    $('f-currency').value = p.currency;
+    onCurrencyChange();
+    if (p.currency !== 'BDT' && p.rate) $('f-rate').value = String(p.rate);
+    $('f-amount').value = String(p.amount);
+    if (p.category) $('f-category').value = p.category;
+    $('f-institution').value = p.institution || '';
+    $('f-details').value = p.details || '';
+    updatePreview();
+    applyMode();
+    gotoView('add');
+    $('f-amount').focus();
+    $('entry-msg').textContent = 'Editing offline draft. Click "Save changes" or "Discard Draft".';
+  }
+
   /** Briefly flashes the save button green with a tactile success confirmation. */
   function flashSaveSuccess(msg) {
     const btn = $('btn-save');
@@ -360,8 +400,21 @@ const EntryForm = (function () {
 
   /** Cancel button in edit mode. */
   function cancelEdit() {
+    const wasOffline = mode === 'edit-offline';
     leaveEdit();
-    gotoView('entries');
+    if (!wasOffline) {
+      gotoView('entries');
+    }
+  }
+
+  /** Discards the offline entry being edited. */
+  async function discardOffline() {
+    if (!window.confirm('Discard this offline entry? It will not be saved anywhere.')) return;
+    if (entryId && Queue.remove) {
+      await Queue.remove(entryId);
+      Ui.toast('Offline entry discarded');
+    }
+    leaveEdit();
   }
 
   /** Form submit: validate, save (add or update), report. */
@@ -381,6 +434,15 @@ const EntryForm = (function () {
     btn.disabled = true;
     btn.textContent = 'Saving...';
     try {
+      if (mode === 'edit-offline') {
+        if (Queue.updatePayload) {
+          await Queue.updatePayload(entryId, payload);
+        }
+        flashSaveSuccess('✓ Saved!');
+        Ui.toast('Offline entry updated \u2713');
+        leaveEdit();
+        return;
+      }
       if (mode === 'edit') {
         if (!navigator.onLine) {
           $('entry-msg').textContent = 'Editing needs internet. Try again when you are online.';
@@ -459,6 +521,8 @@ const EntryForm = (function () {
     $('f-rate').addEventListener('input', updatePreview);
     $('form-entry').addEventListener('submit', onSubmit);
     $('btn-cancel-edit').addEventListener('click', cancelEdit);
+    const btnDiscard = $('btn-discard-offline');
+    if (btnDiscard) btnDiscard.addEventListener('click', discardOffline);
     applyMode();
     watchShell();
   }
@@ -475,5 +539,13 @@ const EntryForm = (function () {
   // Start right away: this script is loaded at the end of the page.
   init();
 
-  return { init: init, load: load, clear: clear, getLists: getLists, startEdit: startEdit, loadDraft: loadDraft };
+  return {
+    init: init,
+    load: load,
+    clear: clear,
+    getLists: getLists,
+    startEdit: startEdit,
+    loadDraft: loadDraft,
+    startEditOffline: startEditOffline
+  };
 })();

@@ -6,7 +6,7 @@
  * It NEVER touches the server API (a different site, and POST).
  * Bump CACHE_NAME when the file list changes.
  */
-const CACHE_NAME = 'my-finance-v4';
+const CACHE_NAME = 'my-finance-v11';
 const NETWORK_TIMEOUT_MS = 4000;
 
 const SHELL = [
@@ -26,12 +26,16 @@ const SHELL = [
   'js/pending.js',
   'js/entries.js',
   'js/reports.js',
+  'js/dashboard.js',
   'js/settings.js',
   'js/excel.js',
   'js/print.js',
   'js/vendor/xlsx.full.min.js',
+  'js/theme.js',
   'js/pwa.js',
   'js/app.js',
+  'icons/favicon.png',
+  'icons/logo.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
   'icons/icon-maskable-512.png',
@@ -78,7 +82,7 @@ async function networkFirst(req) {
     const hit = await cache.match(req, { ignoreSearch: true });
     if (hit) return hit;
     if (req.mode === 'navigate') {
-      const page = await cache.match('index.html');
+      const page = (await cache.match('index.html')) || (await cache.match('./'));
       if (page) return page;
     }
     throw err;

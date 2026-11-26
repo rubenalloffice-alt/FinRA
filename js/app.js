@@ -5,13 +5,15 @@
 (function () {
 
   const $ = function (id) { return document.getElementById(id); };
-  const TITLES = { add: 'Add', entries: 'Entries', reports: 'Reports', settings: 'Settings' };
+  const TITLES = { dashboard: 'Dashboard', add: 'Add', entries: 'Entries', reports: 'Reports', settings: 'Settings' };
   let guest = false;   // true while the app is open without a PIN login (offline entry only)
 
   /** Shows exactly one of the three top-level screens. */
   function showScreen(name) {
     $('screen-setup').hidden = name !== 'setup';
     $('screen-login').hidden = name !== 'login';
+    const recScreen = $('screen-recovery');
+    if (recScreen) recScreen.hidden = name !== 'recovery';
     $('shell').hidden = name !== 'shell';
   }
 
@@ -28,6 +30,7 @@
       b.classList.toggle('active', b.dataset.view === view);
     });
     $('view-title').textContent = TITLES[view];
+    if (view === 'dashboard') DashboardView.show();
     if (view === 'settings') Settings.show();
     if (view === 'entries') Entries.show();
     if (view === 'reports') ReportsView.show();
@@ -36,7 +39,8 @@
   /** Opens the main app and loads what the Add form needs. */
   function enterApp() {
     showScreen('shell');
-    showView('add');
+    showView('dashboard');
+    DashboardView.load();
     EntryForm.load();
     PendingView.refresh();
     Sync.run();
@@ -61,6 +65,7 @@
 
   /** Clears everything that was loaded from the server. */
   function wipeScreens() {
+    DashboardView.clear();
     EntryForm.clear();
     Entries.clear();
     ReportsView.clear();
@@ -159,8 +164,209 @@
     }
   }
 
+  /* ---------- PIN Recovery Controller ---------- */
+  let recTimerInt = null;
+  let recResendInt = null;
+
+  function clearRecoveryTimers() {
+    if (recTimerInt) { clearInterval(recTimerInt); recTimerInt = null; }
+    if (recResendInt) { clearInterval(recResendInt); recResendInt = null; }
+  }
+
+  function openRecovery() {
+    clearRecoveryTimers();
+    $('rec-msg').textContent = '';
+    $('rec-otp-step1').hidden = false;
+    $('form-rec-otp').hidden = true;
+    $('form-rec-key').reset();
+    $('form-rec-otp').reset();
+    switchRecoveryTab('email');
+    showScreen('recovery');
+  }
+
+  function closeRecovery() {
+    clearRecoveryTimers();
+    showScreen('login');
+  }
+
+  function switchRecoveryTab(mode) {
+    const isEmail = mode === 'email';
+    $('tab-rec-email').classList.toggle('active', isEmail);
+    $('tab-rec-key').classList.toggle('active', !isEmail);
+    $('tab-rec-email').setAttribute('aria-selected', isEmail ? 'true' : 'false');
+    $('tab-rec-key').setAttribute('aria-selected', !isEmail ? 'true' : 'false');
+    $('rec-pane-email').hidden = !isEmail;
+    $('rec-pane-key').hidden = isEmail;
+    $('rec-msg').textContent = '';
+  }
+
+  function startOtpCountdown(totalSec) {
+    clearRecoveryTimers();
+    let secLeft = totalSec;
+    const disp = $('rec-timer-display');
+    const badge = disp.closest('.rec-timer-badge');
+    if (badge) badge.classList.remove('urgent');
+
+    const updateDisp = function () {
+      const m = Math.floor(secLeft / 60);
+      const s = secLeft % 60;
+      disp.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+      if (secLeft <= 60 && badge) badge.classList.add('urgent');
+    };
+    updateDisp();
+
+    recTimerInt = setInterval(function () {
+      secLeft--;
+      if (secLeft <= 0) {
+        clearInterval(recTimerInt);
+        recTimerInt = null;
+        disp.textContent = 'Expired';
+        $('rec-msg').textContent = 'Verification code has expired. Please request a new code.';
+      } else {
+        updateDisp();
+      }
+    }, 1000);
+  }
+
+  function startResendCooldown(cooldownSec) {
+    const btn = $('btn-resend-otp');
+    const count = $('rec-resend-count');
+    btn.disabled = true;
+    let sec = cooldownSec;
+    count.textContent = '(' + sec + 's)';
+
+    recResendInt = setInterval(function () {
+      sec--;
+      if (sec <= 0) {
+        clearInterval(recResendInt);
+        recResendInt = null;
+        btn.disabled = false;
+        count.textContent = '';
+      } else {
+        count.textContent = '(' + sec + 's)';
+      }
+    }, 1000);
+  }
+
+  async function onRequestOtp() {
+    const msg = $('rec-msg');
+    const btn = $('btn-send-otp');
+    msg.className = 'msg';
+    msg.textContent = '';
+    btn.disabled = true;
+    try {
+      const res = await Api.call('requestPinReset', {}, { noToken: true });
+      $('rec-otp-step1').hidden = true;
+      $('form-rec-otp').hidden = false;
+      startOtpCountdown(res.expiresInSec || 300);
+      startResendCooldown(res.cooldownSec || 60);
+      $('input-rec-otp').focus();
+    } catch (e) {
+      if (e.code === 'OTP_RATE_LIMITED' && e.details && e.details.retryAfterSec) {
+        msg.textContent = 'Please wait ' + e.details.retryAfterSec + ' seconds before requesting again.';
+      } else {
+        msg.textContent = e.message;
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function onResendOtp() {
+    const msg = $('rec-msg');
+    msg.className = 'msg';
+    msg.textContent = '';
+    try {
+      const res = await Api.call('requestPinReset', {}, { noToken: true });
+      startOtpCountdown(res.expiresInSec || 300);
+      startResendCooldown(res.cooldownSec || 60);
+      Ui.toast('New verification code sent to your email.');
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  }
+
+  async function onSubmitOtpReset(ev) {
+    ev.preventDefault();
+    const msg = $('rec-msg');
+    const btn = $('btn-rec-otp-submit');
+    const otp = $('input-rec-otp').value.trim();
+    const pin = $('input-rec-newpin').value;
+    const pin2 = $('input-rec-confirm').value;
+
+    msg.className = 'msg';
+    msg.textContent = '';
+
+    if (pin !== pin2) {
+      msg.textContent = 'New PIN and confirm PIN do not match.';
+      return;
+    }
+    if (pin.length < 8) {
+      msg.textContent = 'PIN must be at least 8 characters long.';
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const res = await Api.call('verifyPinReset', { otp: otp, newPin: pin }, { noToken: true });
+      Api.setToken(res.token);
+      clearRecoveryTimers();
+      guest = false;
+      enterApp();
+      Ui.toast('PIN successfully updated! Logged in.');
+    } catch (e) {
+      if (e.code === 'BAD_OTP' && e.details && e.details.attemptsLeft !== undefined) {
+        msg.textContent = 'Wrong code. Attempts left: ' + e.details.attemptsLeft;
+      } else {
+        msg.textContent = e.message;
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  async function onSubmitKeyReset(ev) {
+    ev.preventDefault();
+    const msg = $('rec-msg');
+    const btn = $('btn-rec-key-submit');
+    const key = $('input-rec-key').value.trim();
+    const pin = $('input-rec-key-newpin').value;
+    const pin2 = $('input-rec-key-confirm').value;
+
+    msg.className = 'msg';
+    msg.textContent = '';
+
+    if (pin !== pin2) {
+      msg.textContent = 'New PIN and confirm PIN do not match.';
+      return;
+    }
+    if (pin.length < 8) {
+      msg.textContent = 'PIN must be at least 8 characters long.';
+      return;
+    }
+
+    btn.disabled = true;
+    try {
+      const res = await Api.call('verifyMasterKeyReset', { masterKey: key, newPin: pin }, { noToken: true });
+      Api.setToken(res.token);
+      clearRecoveryTimers();
+      guest = false;
+      enterApp();
+      Ui.toast('PIN reset with Master Key! Logged in.');
+    } catch (e) {
+      if (e.code === 'BAD_RECOVERY_KEY' && e.details && e.details.attemptsLeft !== undefined) {
+        msg.textContent = 'Wrong Master Key. Attempts left: ' + e.details.attemptsLeft;
+      } else {
+        msg.textContent = e.message;
+      }
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
   /** Wires all buttons and events once. */
   function init() {
+    DashboardView.init();
     EntryForm.init();
     PendingView.init();
     Sync.start();
@@ -168,6 +374,38 @@
     $('form-setup').addEventListener('submit', onSetupSubmit);
     $('form-login').addEventListener('submit', onLoginSubmit);
     $('btn-lock').addEventListener('click', lockNow);
+    const topLock = $('btn-top-lock');
+    if (topLock) topLock.addEventListener('click', lockNow);
+    const sideLock = $('btn-sidebar-lock');
+    if (sideLock) sideLock.addEventListener('click', lockNow);
+
+    // PIN Recovery Wiring
+    const btnForgot = $('btn-to-recovery');
+    if (btnForgot) btnForgot.addEventListener('click', openRecovery);
+    const btnBackLogin = $('btn-rec-back-login');
+    if (btnBackLogin) btnBackLogin.addEventListener('click', closeRecovery);
+    $('tab-rec-email').addEventListener('click', function () { switchRecoveryTab('email'); });
+    $('tab-rec-key').addEventListener('click', function () { switchRecoveryTab('key'); });
+    $('btn-send-otp').addEventListener('click', onRequestOtp);
+    $('btn-resend-otp').addEventListener('click', onResendOtp);
+    $('form-rec-otp').addEventListener('submit', onSubmitOtpReset);
+    $('form-rec-key').addEventListener('submit', onSubmitKeyReset);
+
+    // Show/hide PIN toggles on recovery inputs
+    const wireShowToggle = function (btnId, inputId) {
+      const b = $(btnId);
+      const inp = $(inputId);
+      if (b && inp) {
+        b.addEventListener('click', function () {
+          const isPass = inp.type === 'password';
+          inp.type = isPass ? 'text' : 'password';
+          b.textContent = isPass ? 'Hide' : 'Show';
+        });
+      }
+    };
+    wireShowToggle('btn-show-rec-newpin', 'input-rec-newpin');
+    wireShowToggle('btn-show-rec-keypin', 'input-rec-key-newpin');
+
     $('btn-change-url').addEventListener('click', function () {
       Api.clearUrl();
       wipeScreens();

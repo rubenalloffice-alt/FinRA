@@ -32,6 +32,15 @@ const ThemeManager = (function () {
     document.querySelectorAll('.theme-btn').forEach(function (btn) {
       btn.classList.toggle('active', btn.dataset.theme === theme);
     });
+
+    // Sync collapsed sidebar cycle icon button
+    const cycleBtn = document.getElementById('btn-theme-cycle');
+    if (cycleBtn) {
+      const icons = { system: '🖥️', light: '☀️', dark: '🌙' };
+      const labels = { system: 'Auto (System)', light: 'Light Mode', dark: 'Dark Mode' };
+      cycleBtn.textContent = icons[theme] || '🌙';
+      cycleBtn.title = 'Theme: ' + (labels[theme] || 'Dark Mode') + ' (Click to switch)';
+    }
   }
 
   function set(theme) {
@@ -40,6 +49,13 @@ const ThemeManager = (function () {
       localStorage.setItem(THEME_KEY, theme);
     } catch (e) { /* ignore */ }
     apply(theme);
+  }
+
+  function cycle() {
+    const order = ['dark', 'light', 'system'];
+    const cur = getSaved();
+    const next = order[(order.indexOf(cur) + 1) % order.length];
+    set(next);
   }
 
   function init() {
@@ -51,20 +67,24 @@ const ThemeManager = (function () {
       if (getSaved() === 'system') apply('system');
     });
 
-    // Wire clicks on theme buttons
+    // Wire clicks on theme buttons and cycle icon
     document.addEventListener('click', function (e) {
       const btn = e.target.closest('.theme-btn');
       if (btn && btn.dataset.theme) {
         e.preventDefault();
         set(btn.dataset.theme);
+        return;
+      }
+      if (e.target.closest('#btn-theme-cycle')) {
+        e.preventDefault();
+        cycle();
       }
     });
   }
 
   init();
 
-  return {
-    get: getSaved,
-    set: set
-  };
+  const api = { get: getSaved, set: set, cycle: cycle };
+  if (typeof window !== 'undefined') window.ThemeManager = api;
+  return api;
 })();

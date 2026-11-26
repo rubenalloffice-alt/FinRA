@@ -378,10 +378,29 @@
     $('form-setup').addEventListener('submit', onSetupSubmit);
     $('form-login').addEventListener('submit', onLoginSubmit);
     $('btn-lock').addEventListener('click', lockNow);
-    const topLock = $('btn-top-lock');
-    if (topLock) topLock.addEventListener('click', lockNow);
     const sideLock = $('btn-sidebar-lock');
     if (sideLock) sideLock.addEventListener('click', lockNow);
+
+    // Desktop Collapsible Sidebar Toggle (persisted)
+    const SIDEBAR_KEY = 'ft_sidebar_collapsed';
+    const shellEl = $('shell');
+    const sidebarToggle = $('btn-sidebar-toggle');
+    const applySidebarState = function (collapsed) {
+      if (shellEl) shellEl.classList.toggle('sidebar-collapsed', collapsed);
+      if (sidebarToggle) {
+        sidebarToggle.title = collapsed ? 'Expand Sidebar' : 'Collapse Sidebar';
+      }
+    };
+    try {
+      applySidebarState(localStorage.getItem(SIDEBAR_KEY) === '1');
+    } catch (e) { /* ignore */ }
+    if (sidebarToggle) {
+      sidebarToggle.addEventListener('click', function () {
+        const next = !(shellEl && shellEl.classList.contains('sidebar-collapsed'));
+        applySidebarState(next);
+        try { localStorage.setItem(SIDEBAR_KEY, next ? '1' : '0'); } catch (e) { /* ignore */ }
+      });
+    }
 
     // PIN Recovery Wiring
     const btnForgot = $('btn-to-recovery');

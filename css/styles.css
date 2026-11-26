@@ -241,6 +241,7 @@ h4 { font-size: 0.95rem; }
 
 /* ---------- 4. Cards & Form Elements ---------- */
 .card {
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -268,6 +269,10 @@ input, select, textarea {
   padding: 12px 14px;
   min-height: 48px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+input:not([type="checkbox"]), select {
+  height: 48px;
 }
 
 input:hover, select:hover, textarea:hover {
@@ -857,14 +862,18 @@ textarea {
 
 .entry-list {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 14px;
 }
 
-@media (min-width: 900px) {
-  .entry-list { grid-template-columns: 1fr 1fr; }
+@media (min-width: 760px) {
+  .entry-list {
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  }
 }
 
 .entry {
+  min-width: 0;
   background: var(--surface);
   border: 1px solid var(--line);
   border-left: 5px solid var(--accent, var(--brand));
@@ -989,16 +998,20 @@ textarea {
 /* ---------- 9. Reports View ---------- */
 .cols2 {
   display: grid;
+  grid-template-columns: 1fr;
   gap: 16px;
   margin-bottom: 20px;
 }
 
 .cols2 .card {
   margin-bottom: 0;
+  min-width: 0;
 }
 
-@media (min-width: 900px) {
-  .cols2 { grid-template-columns: 1fr 1fr; }
+@media (min-width: 820px) {
+  .cols2 {
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  }
 }
 
 .cmp-line {
@@ -1565,7 +1578,7 @@ textarea {
   box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04);
 }
 
-.nav-brand, .nav-footer {
+.nav-brand, .nav-footer, .nav-toggle-btn {
   display: none;
 }
 
@@ -1609,10 +1622,11 @@ textarea {
   transform: translateY(-1px);
 }
 
-/* ---------- 15. Desktop Sidebar Navigation (Velmo Inspired) ---------- */
+/* ---------- 15. Desktop Sidebar Navigation (Velmo Inspired + Collapsible Rail) ---------- */
 @media (min-width: 900px) {
   #shell {
     padding-left: var(--nav-w);
+    transition: padding-left 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .nav {
@@ -1628,34 +1642,38 @@ textarea {
     padding: 24px 16px 20px;
     background: var(--surface);
     box-shadow: 2px 0 12px rgba(0, 0, 0, 0.03);
+    transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), padding 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .nav-brand {
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: 6px 10px 22px;
+    gap: 10px;
+    padding: 6px 6px 20px;
     margin-bottom: 8px;
     border-bottom: 1px solid var(--line);
     cursor: default;
   }
 
   .nav-brand-logo {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 12px;
     object-fit: cover;
     box-shadow: 0 4px 12px var(--brand-glow);
     border: 1px solid var(--line);
+    flex-shrink: 0;
   }
 
   .nav-brand-text {
     display: flex;
     flex-direction: column;
+    min-width: 0;
+    flex: 1;
   }
 
   .nav-brand-title {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 800;
     letter-spacing: -0.02em;
     color: var(--text);
@@ -1663,11 +1681,38 @@ textarea {
   }
 
   .nav-brand-sub {
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 700;
     color: var(--brand);
     text-transform: uppercase;
     letter-spacing: 0.08em;
+  }
+
+  .nav-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--surface-raised);
+    color: var(--muted);
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .nav-toggle-btn:hover {
+    color: var(--text);
+    border-color: var(--line-strong);
+    background: var(--surface);
+  }
+
+  .nav-toggle-btn svg {
+    width: 16px;
+    height: 16px;
+    pointer-events: none;
   }
 
   /* Velmo-style Active Navigation Pill */
@@ -1681,6 +1726,8 @@ textarea {
     min-height: 48px;
     border-radius: 12px;
     color: var(--muted);
+    white-space: nowrap;
+    overflow: hidden;
   }
 
   .nav-item:hover {
@@ -1710,6 +1757,16 @@ textarea {
     gap: 12px;
   }
 
+  .nav-theme-cycle {
+    display: none;
+  }
+
+  .nav-logout-btn {
+    width: 100%;
+    justify-content: center;
+    gap: 8px;
+  }
+
   .nav-footer-row {
     display: flex;
     align-items: center;
@@ -1717,12 +1774,96 @@ textarea {
     gap: 8px;
   }
 
-  .content {
-    padding: 34px 40px 48px;
+  /* Collapsed Sidebar Mini-Rail State */
+  #shell.sidebar-collapsed {
+    padding-left: 74px;
   }
 
-  #form-entry {
-    max-width: 760px;
+  #shell.sidebar-collapsed .nav {
+    width: 74px;
+    padding: 20px 10px;
+    align-items: center;
+  }
+
+  #shell.sidebar-collapsed .nav-brand {
+    flex-direction: column;
+    padding: 4px 0 14px;
+    gap: 10px;
+    width: 100%;
+  }
+
+  #shell.sidebar-collapsed .nav-brand-logo {
+    width: 38px;
+    height: 38px;
+  }
+
+  #shell.sidebar-collapsed .nav-brand-text {
+    display: none;
+  }
+
+  #shell.sidebar-collapsed .nav-item {
+    width: 48px;
+    height: 48px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+
+  #shell.sidebar-collapsed .nav-item span {
+    display: none;
+  }
+
+  #shell.sidebar-collapsed .nav-item:hover {
+    transform: none;
+  }
+
+  #shell.sidebar-collapsed .nav-footer {
+    width: 100%;
+    align-items: center;
+    padding-top: 14px;
+    gap: 10px;
+  }
+
+  #shell.sidebar-collapsed .nav-footer .theme-seg {
+    display: none;
+  }
+
+  #shell.sidebar-collapsed .nav-theme-cycle {
+    display: inline-flex;
+    width: 42px;
+    height: 42px;
+    padding: 0;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 1.15rem;
+  }
+
+  #shell.sidebar-collapsed .nav-logout-btn {
+    width: 42px;
+    height: 42px;
+    padding: 0;
+  }
+
+  #shell.sidebar-collapsed .nav-logout-btn span {
+    display: none;
+  }
+
+  .content {
+    max-width: 1380px;
+    padding: 30px 36px 48px;
+    transition: max-width 0.22s ease, padding 0.22s ease;
+  }
+
+  #shell.sidebar-collapsed .content {
+    max-width: 1580px;
+  }
+
+  #view-add #pending-box,
+  #view-add #form-entry {
+    max-width: 820px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
@@ -1936,6 +2077,8 @@ textarea {
 
 .dash-chart-wrap {
   min-height: 140px;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 /* Spending Category Breakdown List */
@@ -2026,9 +2169,23 @@ textarea {
 }
 
 @media (max-width: 520px) {
+  #view-title {
+    font-size: 1.22rem;
+  }
+  .topbar {
+    gap: 8px;
+    flex-wrap: nowrap;
+  }
+  .dash-month-bar {
+    width: 100%;
+  }
   .dash-hero-card {
     padding: 20px 18px;
     border-radius: 20px;
+  }
+  .dash-hero-top {
+    flex-wrap: wrap;
+    gap: 8px;
   }
   .dash-hero-v {
     font-size: 1.75rem;
@@ -2036,6 +2193,20 @@ textarea {
   .dash-hero-badge {
     padding: 4px 10px;
     font-size: 0.78rem;
+  }
+  .tiles:not(.four) {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .tiles:not(.four) .tile:last-child {
+    grid-column: 1 / -1;
+  }
+  .entry {
+    padding: 14px;
+    gap: 6px 10px;
+  }
+  .amt {
+    font-size: 1.05rem;
   }
   .dash-hero-quick-actions {
     display: grid;

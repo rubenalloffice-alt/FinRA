@@ -59,9 +59,10 @@ const DashboardView = (function () {
 
   function updateGreeting() {
     const h = new Date().getHours();
-    let greet = 'Good evening';
+    let greet = 'Good night';
     if (h >= 5 && h < 12) greet = 'Good morning';
     else if (h >= 12 && h < 17) greet = 'Good afternoon';
+    else if (h >= 17 && h < 21) greet = 'Good evening';
     const el = $('dash-greeting');
     if (el) el.textContent = greet + ', RA Finance!';
   }
@@ -386,6 +387,11 @@ const DashboardView = (function () {
   function init() {
     if (wired) return;
     wired = true;
+    updateGreeting();
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) updateGreeting();
+    });
+    setInterval(updateGreeting, 60000);
 
     const prev = $('dash-prev');
     const next = $('dash-next');

@@ -378,6 +378,7 @@
     if (topLock) topLock.addEventListener('click', lockNow);
     const sideLock = $('btn-sidebar-lock');
     if (sideLock) sideLock.addEventListener('click', lockNow);
+
     // PIN Recovery Wiring
     const btnForgot = $('btn-to-recovery');
     if (btnForgot) btnForgot.addEventListener('click', openRecovery);
